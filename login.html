@@ -70,21 +70,16 @@
             e.preventDefault();
         }, false);
 
-        // Disable shortcuts
         document.onkeydown = function (e) {
-            // Disable F12
             if (e.keyCode == 123) {
                 return false;
             }
-            // Disable Ctrl+Shift+I
             if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
                 return false;
             }
-            // Disable Ctrl+Shift+J
             if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
                 return false;
             }
-            // Disable Ctrl+U
             if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
                 return false;
             }
@@ -253,7 +248,7 @@
                     sessionStorage.setItem('userData', JSON.stringify(userData));
                     console.log('Đã lưu thông tin user:', userData);
 
-                    window.location.href = 'https://hoangmv.github.io/Data_WH/nhapkho.html';
+                    window.location.href = 'https://tambv25.github.io/NhapKho/nhap.html';
                 } else {
                     alert('Tài khoản hoặc mật khẩu không chính xác!');
                 }
