@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.css" rel="stylesheet" />
+    <title>Quản Lý Nhập Kho</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @media print {
+            @page {
+                margin: 0;
+                size: A4 portrait;
+            }
+
+            body {
+                visibility: visible !important;
+                margin: 0;
+                padding: 0;
+                height: auto;
+            }
+
+            .print-page {
+                page-break-after: always;
+                visibility: visible !important;
+            }
+
+            .print-page:last-child {
+                page-break-after: avoid;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            #printArea {
+                display: block !important;
+                visibility: visible !important;
+            }
+        }
+
+        #printArea {
+            background: white;
+            width: 100%;
+            height: auto;
+        }
+
+        .print-page {
+            width: 210mm;
+            padding: 20mm 10mm;
+            margin: 0 auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            height: 297mm;
+            gap: 27mm;
+        }
+
+        .print-page::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            border-top: 2px dashed #000;
+            transform: translateY(-50%);
+        }
+
+        .print-label {
+            width: 200mm;
+            height: 110mm;
+            padding: 0;
+            background: white;
+            page-break-inside: avoid;
+            position: relative;
+            margin: 0;
+        }
+
+        .print-label:last-child {
+            margin-bottom: 0;
+        }
+
+        .print-label table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .print-label td {
+            border: 1px solid black;
+            padding: 2px 4px;
+            font-size: 12px;
+            font-weight: bold;
+            vertical-align: middle;
+        }
+
+        .print-label tr.info-row td:nth-child(1) {
+            width: 12% !important;
+        }
+
+        .print-label tr.info-row td:nth-child(2) {
+            width: 19% !important;
+        }
+
+        .print-label tr.info-row td:nth-child(3) {
+            width: 19% !important;
+        }
+
+        .print-label tr.info-row td:nth-child(4) {
+            width: 20% !important;
+        }
+
+        .print-label tr.info-row td:nth-child(5) {
+            width: 30% !important;
+        }
+
+
+
+        .print-label tr:nth-child(1) {
+            height: 13mm;
+        }
+
+        .print-label tr:nth-child(2) {
+            height: 13mm;
+        }
+
+        .print-label tr:nth-child(3) {
+            height: 16mm;
+        }
+
+        .print-label tr:nth-child(4) {
+            height: 9mm;
+        }
+
+        .print-label tr:nth-child(5) {
+            height: 9mm;
+        }
+
+        .print-label tr:nth-child(6) {
+            height: 9mm;
+        }
+
+        .print-label tr:nth-child(7) {
+            height: 27mm;
+        }
+
+        .qr-cell {
+            width: 30%;
+            position: relative;
+            border: none !important;
+            border-right: 1px solid black !important;
+            border-bottom: 1px solid black !important;
+            padding: 0 !important;
+            vertical-align: middle !important;
+        }
+
+        .qrcode {
+            display: block;
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+        }
+
+        .barcode {
+            width: 100%;
+            height: auto;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hover-shadow-xl {
+            transition: all 0.3s ease;
+        }
+
+        .hover-shadow-xl:hover {
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            transform: translateY(-2px);
+        }
+
+        .slide-toggle {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .selected-row {
+            background-color: #e5edff !important;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation Bar -->
+    <nav class="bg-white border-b border-gray-200 fixed w-full z-30 top-0">
+        <div class="px-3 py-3 lg:px-5 lg:pl-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center justify-start">
+                    <span class="text-xl font-bold ml-2">Quản Lý Nhập Kho</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input type="text" id="searchInput" class="block w-80 pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 
+                                      focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            placeholder="Tìm kiếm phiếu nhập...">
+                    </div>
+                    <button onclick="printAllSelected()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg 
+                                   hover:bg-blue-700 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        In nhãn đã chọn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="p-4 mt-16">
+        <div class="mx-auto container">
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator"
+                class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+                <div class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left" id="dataTable">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th class="p-4">
+                                    <input type="checkbox" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                        onclick="toggleAllGroups(this)">
+                                </th>
+                                <th class="px-2 py-3 font-medium">Số phiếu</th>
+                                <th class="px-2 py-3 font-medium">Trạng thái</th>
+                                <th class="px-2 py-3 font-medium">Tổng tiền</th>
+                                <th class="px-2 py-3 font-medium">Ngày tháng</th>
+                                <th class="px-2 py-3 font-medium">Số lượng</th>
+                                <th class="px-2 py-3 font-medium">Số mặt hàng</th>
+                                <th class="px-2 py-3 font-medium">Nhà cung cấp</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200" id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        }, false);
+
+        // Disable shortcuts
+        document.onkeydown = function (e) {
+            // Disable F12
+            if (e.keyCode == 123) {
+                return false;
+            }
+            // Disable Ctrl+Shift+I
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+                return false;
+            }
+            // Disable Ctrl+Shift+J
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+                return false;
+            }
+            // Disable Ctrl+U
+            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+                return false;
+            }
+        };
+
+
+        const appId = 'cb939a9d-a524-4bdf-9035-71ed0ab962d4';
+        const accessKey = 'V2-fJCAe-tBC2O-bx4Ky-7ECei-IL1aw-E0j4S-HW352-yq1kE';
+        const region = 'www';
+        const tableName = 'NhapKho_CT';
+        let originalData = [];
+        let groupedData = new Map();
+
+        // Utility Functions
+        function showLoading() {
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingIndicator').classList.add('hidden');
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        function updateTableHeader() {
+            const headerHTML = `
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+            <tr>
+                <th class="p-4">
+                    <input type="checkbox" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        onclick="toggleAllGroups(this)">
+                </th>
+                <th class="px-2 py-3 font-medium">Số phiếu</th>
+                <th class="px-2 py-3 font-medium">Số HĐ</th>
+                <th class="px-2 py-3 font-medium">Số PO#</th>
+                <th class="px-2 py-3 font-medium">Trạng thái</th>
+                <th class="px-2 py-3 font-medium">Tổng tiền</th>
+                <th class="px-2 py-3 font-medium">Ngày tháng</th>
+                <th class="px-2 py-3 font-medium">Số lượng</th>
+                <th class="px-2 py-3 font-medium">Số mặt hàng</th>
+                <th class="px-2 py-3 font-medium">Nhà cung cấp</th>
+            </tr>
+        </thead>`;
+
+            document.querySelector('#dataTable thead').outerHTML = headerHTML;
+        }
+
+        // Cập nhật hàm tạo group row
+        function createGroupRow(groupData) {
+            const totalAmount = groupData.items.reduce((sum, item) => {
+                return sum + (parseFloat(item.THANH_TIEN) || 0);
+            }, 0);
+
+            const totalQuantity = groupData.items.reduce((sum, item) => {
+                return sum + (parseFloat(item.SO_LUONG) || 0);
+            }, 0);
+
+            // Lấy SO_HD và SO_PO từ item đầu tiên trong group
+            const firstItem = groupData.items[0] || {};
+            const soHD = firstItem['Số HĐ'] || '';
+            const soPO = firstItem['Số PO#'] || '';
+
+            return `
+        <tr class="group-row hover:bg-gray-50 cursor-pointer" data-phieu="${groupData.SO_PHIEU}">
+            <td class="p-4">
+                <input type="checkbox" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 group-checkbox" 
+                       onclick="event.stopPropagation(); toggleGroup(this, '${groupData.SO_PHIEU}')">
+            </td>
+            <td class="px-2 py-4 font-medium text-blue-600">${groupData.SO_PHIEU}</td>
+            <td class="px-2 py-4 text-gray-600">${soHD}</td>
+            <td class="px-py-4 text-gray-600">${soPO}</td>
+            <td class="px-2 py-4">
+                <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(groupData.TRANG_THAI)}">
+                    ${groupData.TRANG_THAI || ''}
+                </span>
+            </td>
+            <td class="px-2 py-4 font-medium">${formatCurrency(totalAmount)}</td>
+            <td class="px-2 py-4">${formatDate(groupData.NGAY_THANG)}</td>
+            <td class="px-2 py-4 font-medium">${totalQuantity}</td>
+            <td class="px-2 py-4">${groupData.items.length}</td>
+            <td class="px-2 py-4">${groupData.TEN_NCC || ''}</td>
+        </tr>
+    `;
+        }
+
+        // Cập nhật hàm createDetailRow trong file JavaScript
+        function createDetailRow(item) {
+            return `
+        <tr class="detail-row bg-gray-50 animate-fade-in text-sm" data-phieu="${item.SO_PHIEU}" style="display: none;">
+            <td colspan="10" class="p-0">
+                <div class="border-l-4 border-blue-400 ml-8 bg-gray-50">
+                    <div class="w-full grid grid-cols-12 gap-2 p-2 items-center hover:bg-gray-100 transition-colors duration-200">
+                        <div class="col-span-2 text-gray-600">${item.MA_HANG || ''}</div>
+                        <div class="col-span-2 font-medium text-gray-700">${item.TEN_HANG || ''}</div>
+                        <div class="col-span-1 font-medium text-gray-700">${item.SO_LUONG || ''} ${item.DVT || ''}</div>
+                        <div class="col-span-1 font-medium text-gray-700">${item.VI_TRI || 'Chưa có'}</div>
+                        <div class="col-span-1 text-center text-gray-600">${formatDate(item.NSX)}</div>
+                        <div class="col-span-1 text-center text-gray-600">${formatDate(item.HSD)}</div>
+                        <div class="col-span-1 text-center text-gray-600">${item.SO_LOT || ''}</div>
+                        <div class="col-span-2 text-gray-600">${item.GHI_CHU || ''}</div>
+                        <div class="col-span-1 flex justify-end gap-2">
+                            <button onclick="toggleRowSelection(this)" 
+                                    class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-all flex items-center gap-1 hover:shadow-sm"
+                                    data-item='${JSON.stringify(item)}'>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Chọn
+                            </button>
+                            <button onclick='openPrintModal(${JSON.stringify(item).replace(/'/g, "\\'")})' 
+                                    class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-all flex items-center gap-1 hover:shadow-sm">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                </svg>
+                                In
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `;
+        }
+
+        function getStatusClass(status) {
+            switch (status?.toLowerCase()) {
+                case 'hoàn thành':
+                    return 'bg-green-100 text-green-800';
+                case 'đang xử lý':
+                    return 'bg-yellow-100 text-yellow-800';
+                case 'chờ duyệt':
+                    return 'bg-blue-100 text-blue-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        let companyName = '';
+
+        function loadCompanyName() {
+            fetch(`https://${region}.appsheet.com/api/v2/apps/${appId}/tables/ThongTin_DN/Action`, {
+                method: 'POST',
+                headers: {
+                    'ApplicationAccessKey': accessKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    Action: 'Find',
+                    Properties: {
+                        Locale: 'vi-VN',
+                        Timezone: 'Asia/Ho_Chi_Minh'
+                    }
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data) && data.length > 0) {
+                        companyName = data[0].ten_cong_ty || '';
+                    }
+                });
+        }
+
+        // Print Functions
+        function createPrintLabel(item, index) {
+            return `
+        <div class="print-label ${index === 0 ? 'first-label' : ''}">
+            <table>
+                <tr>
+                    <td colspan="4" style="width: 70%; font-size: 30px;">${companyName}</td>
+                    <td style="width: 30%; text-align: center;"> 
+                        <canvas id="barcode-${index}" class="barcode" style="width: 100%; max-width: 200px;"></canvas>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 12%; font-size: 40px;">Tên</td>
+                    <td colspan="4" style="width: 88%; text-align: left; font-size: 30px;">${item.MA_HANG}_${item.TEN_HANG}</td>
+                </tr>
+                <tr>
+                    <td style="width: 12%; font-size: 40px;">HSD</td>
+                    <td colspan="4" style="width: 88%; font-size: 40px; font-weight: bold; text-align: left;">
+                        ${formatDate(item.HSD)}
+                    </td>
+                </tr>
+                <tr class="info-row">
+                    <td style="font-size: 20px;">Số Lot:</td>
+                    <td style="text-align: center;">${item.SO_LOT || ''}</td>
+                    <td style="text-align: center; font-size: 20px;">Ngày nhập:</td>
+                    <td style="text-align: center; font-size: 20px;">
+                        ${formatDate(item.NGAY_THANG)}
+                    </td>
+                    <td style="text-align: center; font-size: 22px;">QR</td>
+                </tr>
+                <tr>
+                    <td style="width: 12%; font-size: 20px;">P Nhập:</td>
+                    <td style="width: 19%; text-align: center;">${item.SO_PHIEU || ''}</td>
+                    <td style="width: 19%; text-align: center; font-size: 20px;">Số Thùng:</td>
+                    <td style="width: 20%; text-align: center; font-size: 20px;">${item.GHI_CHU || ''}</td>
+                    <td rowspan="3" class="qr-cell">
+                        <canvas id="qrcode-${index}" class="qrcode"></canvas>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="text-align: center; font-size: 20px;">Số Lượng</td>
+                    <td style="text-align: center; font-size: 25px;">Vị Trí</td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="font-size: 60px; text-align: center;">
+                        ${item.SO_LUONG || ''}
+                    </td>
+                    <td style="font-size: 60px; text-align: center;">${item.VI_TRI || ''}</td>
+                </tr>
+            </table>
+        </div>
+    `;
+        }
+        function createPrintPages(items) {
+            let html = '';
+            const itemsPerPage = 2;
+
+            for (let i = 0; i < items.length; i += itemsPerPage) {
+                html += '<div class="print-page">';
+                for (let j = 0; j < itemsPerPage && i + j < items.length; j++) {
+                    html += createPrintLabel(items[i + j], i + j);
+                }
+                html += '</div>';
+            }
+
+            return html;
+        }
+
+        async function generateAllBarcodesAndQRs(items) {
+            items.forEach((item, index) => {
+                const barcodeElement = document.getElementById(`barcode-${index}`);
+                if (barcodeElement) {
+                    const barcodeValue = item.MA_HANG || "NO_CODE";
+                    JsBarcode(barcodeElement, barcodeValue, {
+                        width: 2, // Tăng độ rộng của các vạch
+                        height: 50, // Tăng chiều cao
+                        fontSize: 14, // Tăng cỡ chữ
+                        margin: 10, // Thêm margin để dễ quét hơn
+                        format: "CODE128", // Chọn format phổ biến
+                        displayValue: true, // Hiển thị giá trị để dễ kiểm tra
+                        background: "#ffffff", // Nền trắng để tương phản tốt
+                        lineColor: "#000000", // Màu đen đậm cho các vạch
+                        textAlign: "center",
+                        textPosition: "bottom",
+                        textMargin: 6
+                    });
+
+                    const barcodeResultElement = document.getElementById(`barcode-result-${index}`);
+                    if (barcodeResultElement) {
+                        barcodeResultElement.textContent = barcodeValue;
+                    }
+                }
+
+                const qrElement = document.getElementById(`qrcode-${index}`);
+                if (qrElement) {
+                    const date = new Date(item.NGAY_THANG);
+                    const formattedDate = date.toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    }).replace(/\//g, '');
+
+                    const qrData = `${item.MA_HANG || 'NO_CODE'}_${formattedDate}_${item.SO_LUONG || '0'}_${item.VI_TRI || 'NO_LOC'}`;
+
+                    QRCode.toCanvas(qrElement, qrData, {
+                        width: 120,
+                        height: 120,
+                        margin: 0
+                    });
+
+                    // const qrResultElement = document.getElementById(`qr-result-${index}`);
+                    // if (qrResultElement) {
+                    //     qrResultElement.textContent = qrData;
+                    // }
+                }
+            });
+
+            return new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        async function performPrint(items) {
+            const originalContent = document.body.innerHTML;
+
+            try {
+                const tempContainer = document.createElement('div');
+                tempContainer.innerHTML = createPrintPages(items);
+                document.body.innerHTML = tempContainer.innerHTML;
+
+                await generateAllBarcodesAndQRs(items);
+                window.print();
+
+                document.body.innerHTML = originalContent;
+                initializeEventListeners();
+                initializeSearch();
+
+            } catch (error) {
+                console.error('Error printing:', error);
+                document.body.innerHTML = originalContent;
+                initializeEventListeners();
+                initializeSearch();
+                alert('Có lỗi xảy ra khi in');
+            }
+        }
+
+        // Event Handlers
+        function toggleRowSelection(button) {
+            const row = button.closest('.detail-row');
+            row.classList.toggle('selected-row');
+
+            if (row.classList.contains('selected-row')) {
+                button.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Đã chọn
+                `;
+                button.classList.add('bg-blue-100', 'text-blue-700');
+                row.setAttribute('data-selected-item', button.getAttribute('data-item'));
+            } else {
+                button.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Chọn
+                `;
+                button.classList.remove('bg-blue-100', 'text-blue-700');
+                row.removeAttribute('data-selected-item');
+            }
+        }
+
+        function toggleGroup(checkbox, soPhieu) {
+            const groupRow = checkbox.closest('.group-row');
+            groupRow.classList.toggle('group-selected');
+
+            const detailRows = document.querySelectorAll(`.detail-row[data-phieu="${soPhieu}"]`);
+            detailRows.forEach(row => {
+                const selectButton = row.querySelector('button[data-item]');
+                if (checkbox.checked && !row.classList.contains('selected-row')) {
+                    toggleRowSelection(selectButton);
+                } else if (!checkbox.checked && row.classList.contains('selected-row')) {
+                    toggleRowSelection(selectButton);
+                }
+            });
+        }
+
+        async function printAllSelected() {
+            const selectedItems = [];
+            const selectedRows = document.querySelectorAll('.detail-row.selected-row');
+
+            selectedRows.forEach(row => {
+                const itemData = row.getAttribute('data-selected-item');
+                if (itemData) {
+                    try {
+                        selectedItems.push(JSON.parse(itemData));
+                    } catch (e) {
+                        console.error('Error parsing item data:', e);
+                    }
+                }
+            });
+
+            if (selectedItems.length === 0) {
+                showNotification('Vui lòng chọn ít nhất một mặt hàng để in', 'warning');
+                return;
+            }
+
+            await performPrint(selectedItems);
+        }
+
+        // Search and Filter Functions
+        function initializeSearch() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function (e) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    filterTable(searchTerm);
+                });
+            }
+        }
+
+        function filterTable(searchTerm) {
+            currentPage = 1; // Reset về trang 1 khi tìm kiếm
+            const filteredData = originalData.filter(item => {
+                const text = Object.values(item).join(' ').toLowerCase();
+                return text.includes(searchTerm);
+            });
+            renderTable(filteredData);
+        }
+
+        // Data Loading and Initialization
+        function loadData() {
+            showLoading();
+            const apiUrl = `https://${region}.appsheet.com/api/v2/apps/${appId}/tables/${tableName}/Action`;
+
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'ApplicationAccessKey': accessKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    Action: 'Find',
+                    Properties: {
+                        Locale: 'vi-VN',
+                        Timezone: 'Asia/Ho_Chi_Minh'
+                    }
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        data.reverse();
+                        originalData = data;
+                        updateTableHeader(); // Thêm dòng này
+                        renderTable(data);
+                        hideLoading();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    hideLoading();
+                    showNotification('Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.', 'error');
+                });
+        }
+
+        function showNotification(message, type = 'info') {
+            const notifications = document.getElementById('notifications') || createNotificationsContainer();
+            const notification = document.createElement('div');
+
+            notification.className = `notification ${type} animate-fade-in`;
+            notification.innerHTML = `
+                <div class="px-4 py-3 rounded-lg ${getNotificationColor(type)} mb-3">
+                    <p class="text-sm">${message}</p>
+                </div>
+            `;
+
+            notifications.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function getNotificationColor(type) {
+            switch (type) {
+                case 'success':
+                    return 'bg-green-100 text-green-800';
+                case 'error':
+                    return 'bg-red-100 text-red-800';
+                case 'warning':
+                    return 'bg-yellow-100 text-yellow-800';
+                default:
+                    return 'bg-blue-100 text-blue-800';
+            }
+        }
+
+        function createNotificationsContainer() {
+            const container = document.createElement('div');
+            container.id = 'notifications';
+            container.className = 'fixed top-4 right-4 z-50 max-w-sm';
+            document.body.appendChild(container);
+            return container;
+        }
+
+        // Thêm biến để quản lý phân trang
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let totalPages = 0;
+
+        // Hàm tính toán số trang
+        function calculateTotalPages(data) {
+            return Math.ceil(data.size / itemsPerPage);
+        }
+
+        // Hàm lấy dữ liệu cho trang hiện tại
+        function getCurrentPageData(groupedData) {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentPageData = new Map();
+
+            let counter = 0;
+            for (const [key, value] of groupedData) {
+                if (counter >= startIndex && counter < endIndex) {
+                    currentPageData.set(key, value);
+                }
+                counter++;
+                if (counter >= endIndex) break;
+            }
+
+            return currentPageData;
+        }
+
+        // Hàm tạo các nút phân trang
+        function createPaginationControls(totalItems) {
+            const startItem = (currentPage - 1) * itemsPerPage + 1;
+            const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+            return `
+        <div class="pagination-controls flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+            <div class="flex justify-between flex-1 sm:hidden">
+                <button onclick="changePage(${currentPage - 1})" 
+                        class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}">
+                    Trước
+                </button>
+                <button onclick="changePage(${currentPage + 1})"
+                        class="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}">
+                    Sau
+                </button>
+            </div>
+            <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Hiển thị <span class="font-medium">${startItem}</span> đến 
+                        <span class="font-medium">${endItem}</span> trong 
+                        <span class="font-medium">${totalItems}</span> kết quả
+                    </p>
+                </div>
+                <div>
+                    <nav class="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                        <button onclick="changePage(1)" 
+                                class="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <span class="sr-only">Đầu</span>
+                            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        ${generatePageButtons()}
+                        <button onclick="changePage(${totalPages})"
+                                class="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <span class="sr-only">Cuối</span>
+                            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    `;
+        }
+
+        // Hàm tạo các nút số trang
+        function generatePageButtons() {
+            let buttons = '';
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                buttons += `
+            <button onclick="changePage(${i})" 
+                    class="relative inline-flex items-center px-4 py-2 text-sm font-medium border ${i === currentPage
+                        ? 'z-10 bg-blue-600 border-blue-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}">
+                ${i}
+            </button>
+        `;
+            }
+            return buttons;
+        }
+
+        // Hàm chuyển trang
+        function changePage(page) {
+            if (page < 1 || page > totalPages || page === currentPage) return;
+
+            currentPage = page;
+            // Lọc lại dữ liệu nếu đang tìm kiếm
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (searchTerm) {
+                const filteredData = originalData.filter(item => {
+                    const text = Object.values(item).join(' ').toLowerCase();
+                    return text.includes(searchTerm);
+                });
+                renderTable(filteredData);
+            } else {
+                renderTable(originalData);
+            }
+        }
+
+        // Cập nhật hàm renderTable
+        function renderTable(data) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            // Group data
+            groupedData = groupData(data);
+
+            // Tính toán số trang
+            const totalItems = groupedData.size;
+            totalPages = Math.ceil(totalItems / itemsPerPage);
+
+            // Lấy dữ liệu cho trang hiện tại
+            const currentPageData = getCurrentPageData(groupedData);
+
+            // Render rows
+            currentPageData.forEach(group => {
+                let html = createGroupRow(group);
+                group.items.forEach(item => {
+                    html += createDetailRow(item);
+                });
+                tableBody.innerHTML += html;
+            });
+
+            // Render single pagination control
+            const paginationHTML = createPaginationControls(totalItems);
+            const existingPagination = document.querySelector('.pagination-controls');
+            if (existingPagination) {
+                existingPagination.remove();
+            }
+            document.querySelector('.overflow-x-auto').insertAdjacentHTML('afterend', paginationHTML);
+
+            initializeEventListeners();
+        }
+
+        function groupData(data) {
+            const groups = new Map();
+            data.forEach(item => {
+                if (!groups.has(item.SO_PHIEU)) {
+                    groups.set(item.SO_PHIEU, {
+                        SO_PHIEU: item.SO_PHIEU,
+                        TRANG_THAI: item.TRANG_THAI,
+                        NGAY_THANG: item.NGAY_THANG,
+                        TEN_NCC: item.TEN_NCC,
+                        items: []
+                    });
+                }
+                item.THANH_TIEN = parseFloat(item.THANH_TIEN) || 0;
+                groups.get(item.SO_PHIEU).items.push(item);
+            });
+            return groups;
+        }
+
+        function initializeEventListeners() {
+            // Xử lý sự kiện click vào group row
+            document.querySelectorAll('.group-row').forEach(row => {
+                row.addEventListener('click', function (e) {
+                    if (!e.target.classList.contains('group-checkbox')) {
+                        const soPhieu = this.getAttribute('data-phieu');
+                        const detailRows = document.querySelectorAll(`.detail-row[data-phieu="${soPhieu}"]`);
+
+                        detailRows.forEach(detailRow => {
+                            if (detailRow.style.display === 'none') {
+                                detailRow.style.display = 'table-row';
+                                detailRow.classList.add('animate-fade-in');
+                            } else {
+                                detailRow.style.display = 'none';
+                                detailRow.classList.remove('animate-fade-in');
+                            }
+                        });
+
+                        this.classList.toggle('bg-blue-50');
+                        this.querySelector('.group-indicator')?.classList.toggle('rotate-90');
+                    }
+                });
+            });
+
+            // Xử lý hover effect cho các nút
+            document.querySelectorAll('button').forEach(button => {
+                button.addEventListener('mouseenter', function () {
+                    this.classList.add('transform', 'scale-105');
+                });
+                button.addEventListener('mouseleave', function () {
+                    this.classList.remove('transform', 'scale-105');
+                });
+            });
+        }
+
+        async function openPrintModal(item) {
+            try {
+                showLoading();
+                await performPrint([item]);
+                hideLoading();
+            } catch (error) {
+                console.error('Error in print modal:', error);
+                hideLoading();
+                showNotification('Có lỗi xảy ra khi in nhãn', 'error');
+            }
+        }
+
+        function toggleAllGroups(checkbox) {
+            const allGroupCheckboxes = document.querySelectorAll('.group-row .group-checkbox');
+            const allGroupRows = document.querySelectorAll('.group-row');
+
+            allGroupCheckboxes.forEach((cb, index) => {
+                cb.checked = checkbox.checked;
+                const groupRow = allGroupRows[index];
+                const soPhieu = groupRow.getAttribute('data-phieu');
+                toggleGroup(cb, soPhieu);
+            });
+        }
+
+        // Khởi tạo ứng dụng
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCompanyName(); // Thêm dòng này
+
+            loadData();
+            initializeSearch();
+
+
+
+            // Xử lý sự kiện shortcut keys
+            document.addEventListener('keydown', (e) => {
+                // Ctrl/Cmd + P để in
+                if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                    e.preventDefault();
+                    printAllSelected();
+                }
+
+                // Ctrl/Cmd + F để focus vào ô tìm kiếm
+                if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                    e.preventDefault();
+                    document.getElementById('searchInput')?.focus();
+                }
+            });
+        });
+
+        // Export utility functions for testing if needed
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = {
+                formatCurrency,
+                formatDate,
+                groupData,
+                getStatusClass
+            };
+        }
+    </script>
+</body>
+
+</html>
