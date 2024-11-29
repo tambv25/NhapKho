@@ -129,7 +129,7 @@
 
 
         .print-label tr:nth-child(1) {
-            height: 13mm;
+            height: 13mm !important;
         }
 
         .print-label tr:nth-child(2) {
@@ -479,20 +479,57 @@
                 });
         }
 
+        // Function to fetch product names from DanhMuc_HH
+        async function fetchProductNames() {
+            const apiUrl = `https://${region}.appsheet.com/api/v2/apps/${appId}/tables/DanhMuc_HH/Action`;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'ApplicationAccessKey': accessKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        Action: 'Find',
+                        Properties: {
+                            Locale: 'vi-VN',
+                            Timezone: 'Asia/Ho_Chi_Minh'
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                const productMap = new Map();
+
+                if (Array.isArray(data)) {
+                    data.forEach(item => {
+                        productMap.set(item.MA_HANG, item['Tên Hàng (Dùng Để In Tem)'] || item.TEN_HANG);
+                    });
+                }
+
+                return productMap;
+            } catch (error) {
+                console.error('Error fetching product names:', error);
+                return new Map();
+            }
+        }
+
         // Print Functions
-        function createPrintLabel(item, index) {
+        function createPrintLabel(item, index, productNames) {
+            const printName = productNames.get(item.MA_HANG) || `${item.MA_HANG}_${item.TEN_HANG}`;
+
             return `
         <div class="print-label ${index === 0 ? 'first-label' : ''}">
             <table>
                 <tr>
                     <td colspan="4" style="width: 70%; font-size: 30px;">${companyName}</td>
                     <td style="width: 30%; text-align: center;"> 
-                        <canvas id="barcode-${index}" class="barcode" style="width: 100%; max-width: 200px;"></canvas>
+                        <canvas id="barcode-${index}" class="barcode" style="width: 100%;"></canvas>
                     </td>
                 </tr>
                 <tr>
                     <td style="width: 12%; font-size: 40px;">Tên</td>
-                    <td colspan="4" style="width: 88%; text-align: left; font-size: 45px;">${item.MA_HANG}_${item.TEN_HANG}</td>
+                    <td colspan="4" style="width: 88%; text-align: center; font-size: 45px; line-height: 1;">${printName}</td>
                 </tr>
                 <tr>
                     <td style="width: 12%; font-size: 40px;">HSD</td>
@@ -532,14 +569,15 @@
         </div>
     `;
         }
-        function createPrintPages(items) {
+
+        function createPrintPages(items, productNames) {
             let html = '';
             const itemsPerPage = 2;
 
             for (let i = 0; i < items.length; i += itemsPerPage) {
                 html += '<div class="print-page">';
                 for (let j = 0; j < itemsPerPage && i + j < items.length; j++) {
-                    html += createPrintLabel(items[i + j], i + j);
+                    html += createPrintLabel(items[i + j], i + j, productNames);
                 }
                 html += '</div>';
             }
@@ -554,9 +592,9 @@
                     const barcodeValue = item.MA_HANG || "NO_CODE";
                     JsBarcode(barcodeElement, barcodeValue, {
                         width: 2, // Tăng độ rộng của các vạch
-                        height: 50, // Tăng chiều cao
-                        fontSize: 14, // Tăng cỡ chữ
-                        margin: 10, // Thêm margin để dễ quét hơn
+                        height: 30, // Tăng chiều cao
+                        fontSize: 13, // Tăng cỡ chữ
+                        margin: 5, // Thêm margin để dễ quét hơn
                         format: "CODE128", // Chọn format phổ biến
                         displayValue: true, // Hiển thị giá trị để dễ kiểm tra
                         background: "#ffffff", // Nền trắng để tương phản tốt
@@ -603,8 +641,11 @@
             const originalContent = document.body.innerHTML;
 
             try {
+                showLoading();
+                const productNames = await fetchProductNames();
+
                 const tempContainer = document.createElement('div');
-                tempContainer.innerHTML = createPrintPages(items);
+                tempContainer.innerHTML = createPrintPages(items, productNames);
                 document.body.innerHTML = tempContainer.innerHTML;
 
                 await generateAllBarcodesAndQRs(items);
@@ -613,12 +654,14 @@
                 document.body.innerHTML = originalContent;
                 initializeEventListeners();
                 initializeSearch();
+                hideLoading();
 
             } catch (error) {
                 console.error('Error printing:', error);
                 document.body.innerHTML = originalContent;
                 initializeEventListeners();
                 initializeSearch();
+                hideLoading();
                 alert('Có lỗi xảy ra khi in');
             }
         }
