@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.css" rel="stylesheet" />
     <title>Quản Lý Nhập Kho</title>
     <style>
@@ -230,16 +231,23 @@
                             </svg>
                         </div>
                         <input type="text" id="searchInput" class="block w-80 pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 
-                                      focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                          focus:ring-blue-500 focus:border-blue-500 text-sm"
                             placeholder="Tìm kiếm phiếu nhập...">
                     </div>
+                    <button onclick="exportToExcel()" class="flex items-center justify-center w-10 h-10 bg-green-600 text-white rounded-lg 
+                   hover:bg-green-700 transition-all tooltip" data-tooltip-target="tooltip-export" type="button">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                    </button>
                     <button onclick="printAllSelected()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg 
-                                   hover:bg-blue-700 transition-all">
+                                       hover:bg-blue-700 transition-all">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
-                        In nhãn đã chọn
+                        In nhãn
                     </button>
                 </div>
             </div>
@@ -283,29 +291,29 @@
 
     <script>
 
-        document.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-        }, false);
+        // document.addEventListener('contextmenu', function (e) {
+        //     e.preventDefault();
+        // }, false);
 
-        // Disable shortcuts
-        document.onkeydown = function (e) {
-            // Disable F12
-            if (e.keyCode == 123) {
-                return false;
-            }
-            // Disable Ctrl+Shift+I
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
-                return false;
-            }
-            // Disable Ctrl+Shift+J
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
-                return false;
-            }
-            // Disable Ctrl+U
-            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
-                return false;
-            }
-        };
+        // // Disable shortcuts
+        // document.onkeydown = function (e) {
+        //     // Disable F12
+        //     if (e.keyCode == 123) {
+        //         return false;
+        //     }
+        //     // Disable Ctrl+Shift+I
+        //     if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+        //         return false;
+        //     }
+        //     // Disable Ctrl+Shift+J
+        //     if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+        //         return false;
+        //     }
+        //     // Disable Ctrl+U
+        //     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+        //         return false;
+        //     }
+        // };
 
 
         const appId = 'cb939a9d-a524-4bdf-9035-71ed0ab962d4';
@@ -374,7 +382,6 @@
                 return sum + (parseFloat(item.SO_LUONG) || 0);
             }, 0);
 
-            // Lấy SO_HD và SO_PO từ item đầu tiên trong group
             const firstItem = groupData.items[0] || {};
             const soHD = firstItem['Số HĐ'] || '';
             const soPO = firstItem['Số PO#'] || '';
@@ -387,7 +394,7 @@
             </td>
             <td class="px-2 py-4 font-medium text-blue-600">${groupData.SO_PHIEU}</td>
             <td class="px-2 py-4 text-gray-600">${soHD}</td>
-            <td class="px-py-4 text-gray-600">${soPO}</td>
+            <td class="px-2 py-4 text-gray-600">${soPO}</td>
             <td class="px-2 py-4">
                 <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(groupData.TRANG_THAI)}">
                     ${groupData.TRANG_THAI || ''}
@@ -398,9 +405,212 @@
             <td class="px-2 py-4 font-medium">${totalQuantity}</td>
             <td class="px-2 py-4">${groupData.items.length}</td>
             <td class="px-2 py-4">${groupData.TEN_NCC || ''}</td>
+            <td class="px-2 py-4">
+                <button onclick="event.stopPropagation(); printGroup('${groupData.SO_PHIEU}')" 
+                        class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 
+                               transition-all flex items-center gap-1.5 hover:shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    In
+                </button>
+            </td>
         </tr>
     `;
         }
+
+        async function fetchPalletSizes() {
+            try {
+                const response = await fetch(`https://${region}.appsheet.com/api/v2/apps/${appId}/tables/DanhMuc_HH/Action`, {
+                    method: 'POST',
+                    headers: {
+                        'ApplicationAccessKey': accessKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        Action: 'Find',
+                        Properties: {
+                            Locale: 'vi-VN',
+                            Timezone: 'Asia/Ho_Chi_Minh'
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                const palletSizes = new Map();
+
+                if (Array.isArray(data)) {
+                    data.forEach(item => {
+                        palletSizes.set(item.MA_HANG, item['So luong/1 Pallet']);
+                    });
+                }
+
+                return palletSizes;
+            } catch (error) {
+                console.error('Lỗi khi lấy thông tin Pallet:', error);
+                return new Map();
+            }
+        }
+
+        async function prepareGroupedItems(items) {
+            // Lấy số lượng/pallet từ danh mục
+            const palletSizes = await fetchPalletSizes();
+
+            // Gộp theo mã hàng
+            const groupedByCode = items.reduce((acc, item) => {
+                if (!acc[item.MA_HANG]) {
+                    acc[item.MA_HANG] = {
+                        MA_HANG: item.MA_HANG,
+                        TEN_HANG: item.TEN_HANG,
+                        DVT: item.DVT,
+                        SO_LUONG: 0,
+                        SO_CHI_TIET: palletSizes.get(item.MA_HANG) || 0, // Lấy trực tiếp giá trị So luong/1 Pallet
+                        NSX: item.NSX,
+                        HSD: item.HSD,
+                        VI_TRI: item.VI_TRI,
+                        GHI_CHU: item.GHI_CHU
+                    };
+                }
+                acc[item.MA_HANG].SO_LUONG += parseFloat(item.SO_LUONG) || 0;
+                return acc;
+            }, {});
+
+            // Chuyển đổi thành mảng và tính tổng
+            const groupedArray = Object.values(groupedByCode);
+            const totals = {
+                SO_LUONG: groupedArray.reduce((sum, item) => sum + parseFloat(item.SO_LUONG), 0),
+                SO_CHI_TIET: groupedArray.reduce((sum, item) => sum + parseFloat(item.SO_CHI_TIET), 0)
+            };
+
+            return { groupedArray, totals };
+        }
+
+        async function printGroup(soPhieu) {
+            try {
+                showLoading();
+                const group = groupedData.get(soPhieu);
+                if (!group) {
+                    throw new Error('Không tìm thấy dữ liệu nhóm');
+                }
+
+                const { groupedArray, totals } = await prepareGroupedItems(group.items);
+                const date = new Date(group.NGAY_THANG);
+                const formattedDate = `Ngày ${date.getDate()} Tháng ${date.getMonth() + 1} Năm ${date.getFullYear()}`;
+                const soPO = group.items[0]['Số PO#'] || '';
+
+                const printContent = `
+            <div style="width: 210mm; padding: 10mm; margin: 0 auto; background: white;">
+                <div style="margin-bottom: 10px;">
+                    <p style="margin: 0; font-weight: bold;">${companyName || ''}</p>
+                    <p style="margin: 0;">Địa chỉ Công Ty</p>
+                </div>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <h1 style="font-size: 16px; font-weight: bold; margin-bottom: 5px; color: rgb(0, 0, 139);">PHIẾU KIỂM HÀNG NHẬP KHO</h1>
+                    <p style="font-size: 13px;">${formattedDate}</p>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px;">
+                    <div>
+                        <p style="margin: 5px 0;"><strong>Nhà Cung Cấp:</strong> ${group.TEN_NCC}</p>
+                        <p style="margin: 5px 0;"><strong>Địa Chỉ:</strong></p>
+                    </div>
+                    <div>
+                        <p style="margin: 5px 0;"><strong>Phiếu Giao Hàng:</strong> ${soPhieu}</p>
+                        <p style="margin: 5px 0;"><strong>Số Đơn Hàng PO#:</strong> ${soPO}</p>
+                    </div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: normal;">Stt</th>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: normal;">Mã Hàng</th>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: normal;">Tên Hàng</th>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: normal;">Đvt</th>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: normal;">Số Lượng</th>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: normal;">Số Chi Tiết</th>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: normal;">NSX</th>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: normal;">HSD</th>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: normal;">Vị Trí</th>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: normal;">Ghi Chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${groupedArray.map((item, index) => `
+                            <tr>
+                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${index + 1}</td>
+                                <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.MA_HANG}</td>
+                                <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.TEN_HANG}</td>
+                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${item.DVT}</td>
+                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right;">${item.SO_LUONG}</td>
+                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right;">${item.SO_CHI_TIET}</td>
+                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${formatDate(item.NSX)}</td>
+                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${formatDate(item.HSD)}</td>
+                                <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.VI_TRI || ''}</td>
+                                <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.GHI_CHU || ''}</td>
+                            </tr>
+                        `).join('')}
+                        <tr>
+                            <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center; font-weight: bold;" colspan="4">Tổng Cộng:</td>
+                            <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right; font-weight: bold;">${totals.SO_LUONG}</td>
+                            <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right; font-weight: bold;">${totals.SO_CHI_TIET}</td>
+                            <td style="border: 1px solid black; padding: 6px;" colspan="4"></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="margin-top: 40px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; text-align: center;">
+                        <div style="flex: 1;">
+                            <p style="font-weight: bold; margin-bottom: 5px;">Người Lập Phiếu</p>
+                            <p style="font-style: italic; font-size: 11px;">(Ký, họ tên)</p>
+                        </div>
+                        <div style="flex: 1;">
+                            <p style="font-weight: bold; margin-bottom: 5px;">Thủ Kho Nhận Hàng</p>
+                            <p style="font-style: italic; font-size: 11px;">(Ký, họ tên)</p>
+                        </div>
+                        <div style="flex: 1;">
+                            <p style="font-weight: bold; margin-bottom: 5px;">Người Giao Hàng</p>
+                            <p style="font-style: italic; font-size: 11px;">(Ký, họ tên)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+                // Print logic remains the same
+                const originalContent = document.body.innerHTML;
+                document.body.innerHTML = `
+            <style>
+                @page {
+                    size: A4;
+                    margin: 0;
+                }
+                @media print {
+                    body {
+                        margin: 0;
+                        padding: 0;
+                    }
+                }
+            </style>
+            ${printContent}
+        `;
+
+                window.print();
+                document.body.innerHTML = originalContent;
+                initializeEventListeners();
+                initializeSearch();
+                hideLoading();
+
+            } catch (error) {
+                console.error('Lỗi khi in:', error);
+                hideLoading();
+                showNotification('Có lỗi xảy ra khi in phiếu nhập', 'error');
+            }
+        }
+
 
         // Cập nhật hàm createDetailRow trong file JavaScript
         function createDetailRow(item) {
@@ -416,7 +626,7 @@
                         <div class="col-span-1 text-center text-gray-600">${formatDate(item.NSX)}</div>
                         <div class="col-span-1 text-center text-gray-600">${formatDate(item.HSD)}</div>
                         <div class="col-span-1 text-center text-gray-600">${item.SO_LOT || ''}</div>
-                        <div class="col-span-2 text-gray-600">${item.GHI_CHU || ''}</div>
+                        <div class="col-span-2 text-center text-gray-600">${item.GHI_CHU || ''}</div>
                         <div class="col-span-1 flex justify-end gap-2">
                             <button onclick="toggleRowSelection(this)" 
                                     class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-all flex items-center gap-1 hover:shadow-sm"
@@ -707,6 +917,93 @@
             });
         }
 
+        function exportToExcel() {
+            showLoading();
+
+            // Định nghĩa các cột cần xuất
+            const columns = [
+                "TRANG_THAI", "DON_GIA", "THANH_TIEN", "SO_PHIEU", "NGAY_THANG",
+                "MA_HANG", "TEN_HANG", "DVT", "SO_LUONG", "NSX", "HSD",
+                "SO_LOT", "TEN_NCC", "GHI_CHU", "VI_TRI", "KHO", "NHOM_HANG",
+                "Số HĐ", "Số PO#"
+            ];
+
+            // Tạo header cho file Excel
+            const header = columns;
+
+            // Tạo dữ liệu từ originalData
+            const data = originalData.map(item => {
+                return columns.map(col => {
+                    let value = item[col];
+
+                    // Xử lý định dạng ngày tháng
+                    if (col === "NGAY_THANG" || col === "NSX" || col === "HSD") {
+                        value = value ? formatDate(value) : '';
+                    }
+
+                    // Xử lý định dạng số
+                    if (col === "DON_GIA" || col === "THANH_TIEN") {
+                        value = value ? parseFloat(value) : 0;
+                    }
+
+                    return value || '';
+                });
+            });
+
+            // Thêm header vào đầu dữ liệu
+            data.unshift(header);
+
+            // Tạo workbook và worksheet
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Nhập Kho");
+
+            // Tạo tên file với timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `NhapKho_${timestamp}.xlsx`;
+
+            // Xuất file
+            XLSX.writeFile(wb, fileName);
+
+            hideLoading();
+            showNotification('Xuất Excel thành công!', 'success');
+        }
+
+        // Function to reset all selected items
+        function resetSelections() {
+            // Reset all selected detail rows
+            document.querySelectorAll('.detail-row.selected-row').forEach(row => {
+                row.classList.remove('selected-row');
+                const selectButton = row.querySelector('button[data-item]');
+                if (selectButton) {
+                    selectButton.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Chọn
+            `;
+                    selectButton.classList.remove('bg-blue-100', 'text-blue-700');
+                }
+                row.removeAttribute('data-selected-item');
+            });
+
+            // Reset all group checkboxes
+            document.querySelectorAll('.group-row .group-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            // Reset main checkbox in header
+            const headerCheckbox = document.querySelector('thead input[type="checkbox"]');
+            if (headerCheckbox) {
+                headerCheckbox.checked = false;
+            }
+
+            // Reset group row styling
+            document.querySelectorAll('.group-row.group-selected').forEach(row => {
+                row.classList.remove('group-selected');
+            });
+        }
+
         async function printAllSelected() {
             const selectedItems = [];
             const selectedRows = document.querySelectorAll('.detail-row.selected-row');
@@ -728,6 +1025,9 @@
             }
 
             await performPrint(selectedItems);
+
+            // Reset selections after printing
+            resetSelections();
         }
 
         // Search and Filter Functions
