@@ -420,38 +420,7 @@
     `;
         }
 
-        async function fetchPalletSizes() {
-            try {
-                const response = await fetch(`https://${region}.appsheet.com/api/v2/apps/${appId}/tables/DanhMuc_HH/Action`, {
-                    method: 'POST',
-                    headers: {
-                        'ApplicationAccessKey': accessKey,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        Action: 'Find',
-                        Properties: {
-                            Locale: 'vi-VN',
-                            Timezone: 'Asia/Ho_Chi_Minh'
-                        }
-                    })
-                });
 
-                const data = await response.json();
-                const palletSizes = new Map();
-
-                if (Array.isArray(data)) {
-                    data.forEach(item => {
-                        palletSizes.set(item.MA_HANG, item['So luong/1 Pallet']);
-                    });
-                }
-
-                return palletSizes;
-            } catch (error) {
-                console.error('Lỗi khi lấy thông tin Pallet:', error);
-                return new Map();
-            }
-        }
 
         async function prepareGroupedItems(items) {
             // Lấy số lượng/pallet từ danh mục
@@ -465,7 +434,6 @@
                         TEN_HANG: item.TEN_HANG,
                         DVT: item.DVT,
                         SO_LUONG: 0,
-                        SO_CHI_TIET: palletSizes.get(item.MA_HANG) || 0, // Lấy trực tiếp giá trị So luong/1 Pallet
                         NSX: item.NSX,
                         HSD: item.HSD,
                         VI_TRI: item.VI_TRI,
@@ -479,8 +447,7 @@
             // Chuyển đổi thành mảng và tính tổng
             const groupedArray = Object.values(groupedByCode);
             const totals = {
-                SO_LUONG: groupedArray.reduce((sum, item) => sum + parseFloat(item.SO_LUONG), 0),
-                SO_CHI_TIET: groupedArray.reduce((sum, item) => sum + parseFloat(item.SO_CHI_TIET), 0)
+                SO_LUONG: groupedArray.reduce((sum, item) => sum + parseFloat(item.SO_LUONG), 0)
             };
 
             return { groupedArray, totals };
@@ -494,7 +461,19 @@
                     throw new Error('Không tìm thấy dữ liệu nhóm');
                 }
 
-                const { groupedArray, totals } = await prepareGroupedItems(group.items);
+                // Group items by MA_HANG and calculate totals
+                const productTotals = new Map();
+                group.items.forEach(item => {
+                    const maHang = item.MA_HANG;
+                    if (!productTotals.has(maHang)) {
+                        productTotals.set(maHang, {
+                            totalQuantity: 0,
+                            firstItem: item
+                        });
+                    }
+                    productTotals.get(maHang).totalQuantity += parseFloat(item.SO_LUONG || 0);
+                });
+
                 const date = new Date(group.NGAY_THANG);
                 const formattedDate = `Ngày ${date.getDate()} Tháng ${date.getMonth() + 1} Năm ${date.getFullYear()}`;
                 const soPO = group.items[0]['Số PO#'] || '';
@@ -533,30 +512,40 @@
                             <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Số Chi Tiết</th>
                             <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">NSX</th>
                             <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">HSD</th>
+                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Số Lot</th>
                             <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Vị Trí</th>
                             <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Ghi Chú</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${groupedArray.map((item, index) => `
-                            <tr>
-                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${index + 1}</td>
-                                <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.MA_HANG}</td>
-                                <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.TEN_HANG}</td>
-                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${item.DVT}</td>
-                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right;">${item.SO_LUONG}</td>
-                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right;">${item.SO_CHI_TIET}</td>
-                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${formatDate(item.NSX)}</td>
-                                <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${formatDate(item.HSD)}</td>
-                                <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.VI_TRI || ''}</td>
-                                <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.GHI_CHU || ''}</td>
-                            </tr>
-                        `).join('')}
+                        ${group.items.map((item, index) => {
+                    const isFirstOccurrence = productTotals.get(item.MA_HANG).firstItem === item;
+                    return `
+                                <tr>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${index + 1}</td>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.MA_HANG}</td>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.TEN_HANG}</td>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${item.DVT}</td>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right;">
+                                        ${isFirstOccurrence ? productTotals.get(item.MA_HANG).totalQuantity : ''}
+                                    </td>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right;">${item.SO_LUONG || ''}</td>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${formatDate(item.NSX)}</td>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${formatDate(item.HSD)}</td>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${item.SO_LOT || ''}</td>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.VI_TRI || ''}</td>
+                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.GHI_CHU || ''}</td>
+                                </tr>`;
+                }).join('')}
                         <tr>
                             <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center; font-weight: bold;" colspan="4">Tổng Cộng:</td>
-                            <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right; font-weight: bold;">${totals.SO_LUONG}</td>
-                            <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right; font-weight: bold;">${totals.SO_CHI_TIET}</td>
-                            <td style="border: 1px solid black; padding: 6px;" colspan="4"></td>
+                            <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right; font-weight: bold;">
+                                ${Array.from(productTotals.values()).reduce((sum, { totalQuantity }) => sum + totalQuantity, 0)}
+                            </td>
+                            <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right; font-weight: bold;">
+                                ${group.items.reduce((sum, item) => sum + parseFloat(item.SO_LUONG || 0), 0)}
+                            </td>
+                            <td style="border: 1px solid black; padding: 6px;" colspan="5"></td>
                         </tr>
                     </tbody>
                 </table>
@@ -580,7 +569,7 @@
             </div>
         `;
 
-                // Print logic remains the same
+                // Print logic
                 const originalContent = document.body.innerHTML;
                 document.body.innerHTML = `
             <style>
