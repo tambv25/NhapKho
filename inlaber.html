@@ -235,7 +235,7 @@
                             placeholder="Tìm kiếm phiếu nhập...">
                     </div>
                     <button onclick="exportToExcel()" class="flex items-center justify-center w-10 h-10 bg-green-600 text-white rounded-lg 
-                   hover:bg-green-700 transition-all tooltip" data-tooltip-target="tooltip-export" type="button">
+                   hover:bg-green-700 transition-all tooltip" type="button">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -291,29 +291,24 @@
 
     <script>
 
-        // document.addEventListener('contextmenu', function (e) {
-        //     e.preventDefault();
-        // }, false);
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        }, false);
 
-        // // Disable shortcuts
-        // document.onkeydown = function (e) {
-        //     // Disable F12
-        //     if (e.keyCode == 123) {
-        //         return false;
-        //     }
-        //     // Disable Ctrl+Shift+I
-        //     if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
-        //         return false;
-        //     }
-        //     // Disable Ctrl+Shift+J
-        //     if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
-        //         return false;
-        //     }
-        //     // Disable Ctrl+U
-        //     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
-        //         return false;
-        //     }
-        // };
+        document.onkeydown = function (e) {
+            if (e.keyCode == 123) {
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+                return false;
+            }
+            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+                return false;
+            }
+        };
 
 
         const appId = 'cb939a9d-a524-4bdf-9035-71ed0ab962d4';
@@ -453,6 +448,39 @@
             return { groupedArray, totals };
         }
 
+        async function fetchSupplierAddresses() {
+            try {
+                const response = await fetch(`https://${region}.appsheet.com/api/v2/apps/${appId}/tables/DanhMuc_NCC/Action`, {
+                    method: 'POST',
+                    headers: {
+                        'ApplicationAccessKey': accessKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        Action: 'Find',
+                        Properties: {
+                            Locale: 'vi-VN',
+                            Timezone: 'Asia/Ho_Chi_Minh'
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                const addressMap = new Map();
+
+                if (Array.isArray(data)) {
+                    data.forEach(supplier => {
+                        addressMap.set(supplier.TEN_NCC, supplier.DIA_CHI);
+                    });
+                }
+
+                return addressMap;
+            } catch (error) {
+                console.error('Error fetching supplier addresses:', error);
+                return new Map();
+            }
+        }
+
         async function printGroup(soPhieu) {
             try {
                 showLoading();
@@ -460,6 +488,8 @@
                 if (!group) {
                     throw new Error('Không tìm thấy dữ liệu nhóm');
                 }
+                const supplierAddresses = await fetchSupplierAddresses();
+                const supplierAddress = supplierAddresses.get(group.TEN_NCC) || '';
 
                 // Group items by MA_HANG and calculate totals
                 const productTotals = new Map();
@@ -482,7 +512,7 @@
             <div style="width: 210mm; padding: 10mm; margin: 0 auto; background: white;">
                 <div style="margin-bottom: 10px;">
                     <p style="margin: 0; font-weight: bold;">${companyName || ''}</p>
-                    <p style="margin: 0;">Địa chỉ Công Ty</p>
+                    <p style="margin: 0;">${companyAddress || ''}</p>
                 </div>
                 
                 <div style="text-align: center; margin: 20px 0;">
@@ -493,7 +523,7 @@
                 <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px;">
                     <div>
                         <p style="margin: 5px 0;"><strong>Nhà Cung Cấp:</strong> ${group.TEN_NCC}</p>
-                        <p style="margin: 5px 0;"><strong>Địa Chỉ:</strong></p>
+                        <p style="margin: 5px 0;"><strong>Địa Chỉ:</strong> ${supplierAddress}</p>
                     </div>
                     <div>
                         <p style="margin: 5px 0;"><strong>Phiếu Giao Hàng:</strong> ${soPhieu}</p>
@@ -587,7 +617,14 @@
             ${printContent}
         `;
 
+                // Update the window print function
+                const originalPrint = window.print;
+                
+                // Thêm dòng này trước khi in
+                document.title = `${soPhieu}`;
+
                 window.print();
+                window.print = originalPrint;
                 document.body.innerHTML = originalContent;
                 initializeEventListeners();
                 initializeSearch();
@@ -654,6 +691,7 @@
         }
 
         let companyName = '';
+        let companyAddress = '';
 
         function loadCompanyName() {
             fetch(`https://${region}.appsheet.com/api/v2/apps/${appId}/tables/ThongTin_DN/Action`, {
@@ -674,6 +712,7 @@
                 .then(data => {
                     if (Array.isArray(data) && data.length > 0) {
                         companyName = data[0].ten_cong_ty || '';
+                        companyAddress = data[0].dia_chi || '';
                     }
                 });
         }
