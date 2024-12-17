@@ -383,24 +383,24 @@
 
             return `
         <tr class="group-row hover:bg-gray-50 cursor-pointer" data-phieu="${groupData.SO_PHIEU}">
-            <td class="p-4">
+            <td class="p-2">
                 <input type="checkbox" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 group-checkbox" 
                        onclick="event.stopPropagation(); toggleGroup(this, '${groupData.SO_PHIEU}')">
             </td>
-            <td class="px-2 py-4 font-medium text-blue-600">${groupData.SO_PHIEU}</td>
-            <td class="px-2 py-4 text-gray-600">${soHD}</td>
-            <td class="px-2 py-4 text-gray-600">${soPO}</td>
-            <td class="px-2 py-4">
+            <td class="px-2  font-medium text-blue-600">${groupData.SO_PHIEU}</td>
+            <td class="px-2  text-gray-600">${soHD}</td>
+            <td class="px-2  text-gray-600">${soPO}</td>
+            <td class="px-2 ">
                 <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(groupData.TRANG_THAI)}">
                     ${groupData.TRANG_THAI || ''}
                 </span>
             </td>
-            <td class="px-2 py-4 font-medium">${formatCurrency(totalAmount)}</td>
-            <td class="px-2 py-4">${formatDate(groupData.NGAY_THANG)}</td>
-            <td class="px-2 py-4 font-medium">${totalQuantity}</td>
-            <td class="px-2 py-4">${groupData.items.length}</td>
-            <td class="px-2 py-4">${groupData.TEN_NCC || ''}</td>
-            <td class="px-2 py-4">
+            <td class="px-2  font-medium">${formatCurrency(totalAmount)}</td>
+            <td class="px-2 ">${formatDate(groupData.NGAY_THANG)}</td>
+            <td class="px-2  font-medium">${totalQuantity}</td>
+            <td class="px-2 ">${groupData.items.length}</td>
+            <td class="px-2 ">${groupData.TEN_NCC || ''}</td>
+            <td class="px-2 ">
                 <button onclick="event.stopPropagation(); printGroup('${groupData.SO_PHIEU}')" 
                         class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 
                                transition-all flex items-center gap-1.5 hover:shadow-sm">
@@ -481,6 +481,7 @@
             }
         }
 
+        // Thay thế hàm printGroup hiện tại bằng hàm mới này
         async function printGroup(soPhieu) {
             try {
                 showLoading();
@@ -491,7 +492,6 @@
                 const supplierAddresses = await fetchSupplierAddresses();
                 const supplierAddress = supplierAddresses.get(group.TEN_NCC) || '';
 
-                // Group items by MA_HANG and calculate totals
                 const productTotals = new Map();
                 group.items.forEach(item => {
                     const maHang = item.MA_HANG;
@@ -508,8 +508,59 @@
                 const formattedDate = `Ngày ${date.getDate()} Tháng ${date.getMonth() + 1} Năm ${date.getFullYear()}`;
                 const soPO = group.items[0]['Số PO#'] || '';
 
+                // Style cho trang in nằm ngang
+                const printStyles = `
+            <style>
+                @page {
+                    size: A4 landscape;
+                    margin: 0;
+                }
+                @media print {
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        width: 297mm;
+                        height: 210mm;
+                    }
+                    .print-container {
+                        width: 297mm;
+                        padding: 10mm;
+                        margin: 0;
+                        background: white;
+                    }
+                    .table-container {
+                        margin-top: 15px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+                    th, td {
+                        border: 1px solid black;
+                        padding: 6px;
+                        font-size: 11px;
+                    }
+                    th {
+                        background-color: #f2f2f2;
+                        font-weight: bold;
+                    }
+                    .signature-section {
+                        margin-top: 30px;
+                        display: flex;
+                        justify-content: space-between;
+                    }
+                    .signature-box {
+                        flex: 1;
+                        text-align: center;
+                        margin: 0 20px;
+                    }
+                }
+            </style>
+        `;
+
                 const printContent = `
-            <div style="width: 210mm; padding: 10mm; margin: 0 auto; background: white;">
+            ${printStyles}
+            <div class="print-container">
                 <div style="margin-bottom: 10px;">
                     <p style="margin: 0; font-weight: bold;">${companyName || ''}</p>
                     <p style="margin: 0;">${companyAddress || ''}</p>
@@ -531,69 +582,69 @@
                     </div>
                 </div>
 
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                    <thead>
-                        <tr>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Stt</th>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Mã Hàng</th>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Tên Hàng</th>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Đvt</th>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Số Lượng</th>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Số Chi Tiết</th>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">NSX</th>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">HSD</th>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Số Lot</th>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Vị Trí</th>
-                            <th style="border: 1px solid black; padding: 6px; font-size: 12px; background-color: rgb(242, 242, 242); font-weight: bold;">Ghi Chú</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${group.items.map((item, index) => {
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 4%;">Stt</th>
+                                <th style="width: 8%;">Mã Hàng</th>
+                                <th style="width: 25%;">Tên Hàng</th>
+                                <th style="width: 5%;">Đvt</th>
+                                <th style="width: 8%;">Số Lượng</th>
+                                <th style="width: 8%;">Số Chi Tiết</th>
+                                <th style="width: 8%;">Vị Trí</th>
+                                <th style="width: 8%;">NSX</th>
+                                <th style="width: 8%;">HSD</th>
+                                <th style="width: 8%;">Số Lot</th>
+                                <th style="width: 10%;">Ghi Chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${group.items.map((item, index) => {
                     const isFirstOccurrence = productTotals.get(item.MA_HANG).firstItem === item;
                     return `
-                                <tr>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${index + 1}</td>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.MA_HANG}</td>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.TEN_HANG}</td>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${item.DVT}</td>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right;">
-                                        ${isFirstOccurrence ? productTotals.get(item.MA_HANG).totalQuantity : ''}
-                                    </td>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right;">${item.SO_LUONG || ''}</td>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${formatDate(item.NSX)}</td>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${formatDate(item.HSD)}</td>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center;">${item.SO_LOT || ''}</td>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.VI_TRI || ''}</td>
-                                    <td style="border: 1px solid black; padding: 6px; font-size: 12px;">${item.GHI_CHU || ''}</td>
-                                </tr>`;
+                                    <tr>
+                                        <td style="text-align: center;">${index + 1}</td>
+                                        <td>${item.MA_HANG}</td>
+                                        <td>${item.TEN_HANG}</td>
+                                        <td style="text-align: center;">${item.DVT}</td>
+                                        <td style="text-align: right;">
+                                            ${isFirstOccurrence ? productTotals.get(item.MA_HANG).totalQuantity : ''}
+                                        </td>
+                                        <td style="text-align: right;">${item.SO_LUONG || ''}</td>
+                                        <td>${item.VI_TRI || ''}</td>
+                                        <td style="text-align: center;">${formatDate(item.NSX)}</td>
+                                        <td style="text-align: center;">${formatDate(item.HSD)}</td>
+                                        <td style="text-align: center;">${item.SO_LOT || ''}</td>
+                                        <td>${item.GHI_CHU || ''}</td>
+                                    </tr>`;
                 }).join('')}
-                        <tr>
-                            <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: center; font-weight: bold;" colspan="4">Tổng Cộng:</td>
-                            <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right; font-weight: bold;">
-                                ${Array.from(productTotals.values()).reduce((sum, { totalQuantity }) => sum + totalQuantity, 0)}
-                            </td>
-                            <td style="border: 1px solid black; padding: 6px; font-size: 12px; text-align: right; font-weight: bold;">
-                                ${group.items.reduce((sum, item) => sum + parseFloat(item.SO_LUONG || 0), 0)}
-                            </td>
-                            <td style="border: 1px solid black; padding: 6px;" colspan="5"></td>
-                        </tr>
-                    </tbody>
-                </table>
+                            <tr>
+                                <td colspan="4" style="text-align: center; font-weight: bold;">Tổng Cộng:</td>
+                                <td style="text-align: right; font-weight: bold;">
+                                    ${Array.from(productTotals.values()).reduce((sum, { totalQuantity }) => sum + totalQuantity, 0)}
+                                </td>
+                                <td style="text-align: right; font-weight: bold;">
+                                    ${group.items.reduce((sum, item) => sum + parseFloat(item.SO_LUONG || 0), 0)}
+                                </td>
+                                <td colspan="5"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                <div style="margin-top: 40px; font-size: 13px;">
-                    <div style="display: flex; justify-content: space-between; text-align: center;">
-                        <div style="flex: 1;">
-                            <p style="font-weight: bold; margin-bottom: 5px;">Người Lập Phiếu</p>
-                            <p style="font-style: italic; font-size: 11px;">(Ký, họ tên)</p>
-                        </div>
-                        <div style="flex: 1;">
-                            <p style="font-weight: bold; margin-bottom: 5px;">Thủ Kho Nhận Hàng</p>
-                            <p style="font-style: italic; font-size: 11px;">(Ký, họ tên)</p>
-                        </div>
-                        <div style="flex: 1;">
-                            <p style="font-weight: bold; margin-bottom: 5px;">Người Giao Hàng</p>
-                            <p style="font-style: italic; font-size: 11px;">(Ký, họ tên)</p>
-                        </div>
+                <div class="signature-section">
+                    <div class="signature-box">
+                        <p style="font-weight: bold; margin-bottom: 5px;">Người Lập Phiếu</p>
+                        <p style="font-style: italic; font-size: 11px;">(Ký, họ tên)</p>
+                    </div>
+                    <div class="signature-box">
+                        <p style="font-weight: bold; margin-bottom: 5px;">Thủ Kho Nhận Hàng</p>
+                        <p style="font-style: italic; font-size: 11px;">(Ký, họ tên)</p>
+                    </div>
+                    <div class="signature-box">
+                        <p style="font-weight: bold; margin-bottom: 5px;">Người Giao Hàng</p>
+                        <p style="font-style: italic; font-size: 11px;">(Ký, họ tên)</p>
                     </div>
                 </div>
             </div>
@@ -601,30 +652,12 @@
 
                 // Print logic
                 const originalContent = document.body.innerHTML;
-                document.body.innerHTML = `
-            <style>
-                @page {
-                    size: A4;
-                    margin: 0;
-                }
-                @media print {
-                    body {
-                        margin: 0;
-                        padding: 0;
-                    }
-                }
-            </style>
-            ${printContent}
-        `;
+                document.body.innerHTML = printContent;
 
-                // Update the window print function
-                const originalPrint = window.print;
-                
-                // Thêm dòng này trước khi in
+                // Thêm tên phiếu vào title trước khi in
                 document.title = `${soPhieu}`;
 
                 window.print();
-                window.print = originalPrint;
                 document.body.innerHTML = originalContent;
                 initializeEventListeners();
                 initializeSearch();
@@ -636,7 +669,6 @@
                 showNotification('Có lỗi xảy ra khi in phiếu nhập', 'error');
             }
         }
-
 
         // Cập nhật hàm createDetailRow trong file JavaScript
         function createDetailRow(item) {
