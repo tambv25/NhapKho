@@ -991,7 +991,7 @@
             // Tạo header cho file Excel
             const header = columns;
 
-            // Tạo dữ liệu từ originalData
+            // Tạo dữ liệu từ originalData với chuyển đổi kiểu dữ liệu phù hợp
             const data = originalData.map(item => {
                 return columns.map(col => {
                     let value = item[col];
@@ -1000,10 +1000,11 @@
                     if (col === "NGAY_THANG" || col === "NSX" || col === "HSD") {
                         value = value ? formatDate(value) : '';
                     }
-
-                    // Xử lý định dạng số
-                    if (col === "DON_GIA" || col === "THANH_TIEN") {
+                    // Xử lý các trường số
+                    else if (col === "DON_GIA" || col === "THANH_TIEN" || col === "SO_LUONG") {
                         value = value ? parseFloat(value) : 0;
+                        // Đảm bảo là số hợp lệ, nếu không thì mặc định là 0
+                        value = isNaN(value) ? 0 : value;
                     }
 
                     return value || '';
