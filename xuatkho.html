@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phiếu Xuất Kho</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background-color: white;
+            padding: 20px;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        .container {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+        }
+
+        /* Print Controls */
+        .print-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 180px;
+        }
+
+        .print-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .print-btn:hover {
+            background: #c0392b;
+        }
+
+        .print-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        /* Title */
+        .title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .date-info {
+            text-align: center;
+            font-size: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* Header section */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            min-height: 100px;
+        }
+
+        .left-info {
+            flex: 1;
+            padding-right: 20px;
+        }
+
+        .right-info {
+            text-align: left;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+            min-width: 200px;
+        }
+
+        .barcode-container {
+            text-align: right;
+            margin-bottom: 10px;
+            height: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        /* Barcode styles */
+        #barcodeCanvas {
+            border: 1px solid #ccc;
+            max-width: 180px;
+        }
+
+        .barcode-fallback {
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            letter-spacing: 1px;
+            background: #f0f0f0;
+            padding: 8px;
+            border: 1px solid #000;
+            max-width: 180px;
+        }
+
+        /* Info lines */
+        .info-line {
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        /* Product Table */
+        .product-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+
+        .product-table th,
+        .product-table td {
+            border: 1px solid #000;
+            padding: 6px 4px;
+            text-align: center;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        .product-table th {
+            background-color: #d9e3f0;
+            font-weight: bold;
+            height: 30px;
+        }
+
+        .product-table td {
+            height: 25px;
+        }
+
+        .product-name {
+            text-align: left !important;
+            padding-left: 8px !important;
+        }
+
+        /* Column widths */
+        .stt-col {
+            width: 6%;
+        }
+
+        .ma-hang-col {
+            width: 15%;
+        }
+
+        .ten-hang-col {
+            width: 32%;
+        }
+
+        .dvt-col {
+            width: 8%;
+        }
+
+        .so-luong-col {
+            width: 12%;
+        }
+
+        .so-kien-col {
+            width: 10%;
+        }
+
+        .ghi-chu-col {
+            width: 17%;
+        }
+
+        /* Total row */
+        .total-row {
+            font-weight: bold;
+        }
+
+        .total-row td {
+            font-weight: bold;
+        }
+
+        /* Signature Section */
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+
+        .signature-box {
+            text-align: center;
+            width: 24%;
+            padding: 0 5px;
+        }
+
+        .signature-title {
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        .signature-subtitle {
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        /* Loading & Error */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .warning {
+            color: orange;
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        /* Print Styles */
+        @media print {
+            @page {
+                size: A4;
+                margin: 15mm;
+            }
+
+            .print-controls {
+                display: none !important;
+            }
+
+            .loading-overlay {
+                display: none !important;
+            }
+
+            body {
+                padding: 0;
+                margin: 0;
+                font-size: 13px;
+            }
+
+            .container {
+                max-width: none;
+                width: 100%;
+            }
+
+            .title {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Print Controls -->
+    <div class="print-controls">
+        <button class="print-btn" onclick="printDocument()" id="printBtn">
+            In phiếu xuất kho
+        </button>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div style="text-align: center;">
+            <p>Đang tải dữ liệu...</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Title -->
+        <div class="title">PHIẾU XUẤT KHO</div>
+        <div class="date-info">Ngày Tháng: <span id="ngayXuat"></span></div>
+
+        <!-- Header -->
+        <div class="header-section" id="headerSection">
+            <div class="left-info">
+                <div class="info-line"><strong>Người Nhận Hàng:</strong> <span id="nguoiNhanHang"></span></div>
+                <div class="info-line"><strong>Địa Chỉ:</strong> <span id="diaChi"></span></div>
+                <div class="info-line"><strong>Số ĐT:</strong> <span id="soDienThoai"></span></div>
+                <div class="info-line"><strong>Nội Dung Xuất Hàng:</strong> <span id="noiDungXuat"></span></div>
+            </div>
+            <div class="right-info">
+                <div class="barcode-container">
+                    <canvas id="barcodeCanvas" style="display: none;"></canvas>
+                    <div id="barcodeFallback" class="barcode-fallback">|||||||||||||||||</div>
+                </div>
+                <div><strong>SP:</strong> <span id="soPhieu"></span></div>
+                <div><strong>Số HD:</strong> <span id="soHD"></span></div>
+            </div>
+        </div>
+
+        <!-- Product Table -->
+        <table class="product-table">
+            <thead>
+                <tr>
+                    <th class="stt-col">Stt</th>
+                    <th class="ma-hang-col">Mã Hàng</th>
+                    <th class="ten-hang-col">Tên Hàng</th>
+                    <th class="dvt-col">Đvt</th>
+                    <th class="so-luong-col">Số lượng</th>
+                    <th class="so-kien-col">Số Kiện</th>
+                    <th class="ghi-chu-col">Ghi Chú</th>
+                </tr>
+            </thead>
+            <tbody id="productTableBody">
+                <!-- Sẽ được điền bằng JavaScript -->
+            </tbody>
+        </table>
+
+        <!-- Signature Section -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-title">Người Lập Phiếu</div>
+                <div class="signature-subtitle">(Ký, họ tên)</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-title">Trưởng Bộ Phận</div>
+                <div class="signature-subtitle">(Ký, họ tên)</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-title">Tài Xế</div>
+                <div class="signature-subtitle">(Ký, họ tên)</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-title">Người Nhận Hàng</div>
+                <div class="signature-subtitle">(Ký, họ tên)</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_CONFIG = {
+            APP_ID: '7b22d99e-f474-4cf4-a1ba-075c57956cc8',
+            ACCESS_KEY: 'V2-o9vhQ-ajLxJ-rkv9v-aUwBu-q7z7L-Wn2PY-OYtNw-abNYu',
+            REGION: 'www',
+            BASE_URL: 'https://www.appsheet.com/api/v2/apps'
+        };
+    </script>
+    <script src="https://tambv25.github.io/NhapKho/xuatkho.js"></script>
+</body>
+
+</html>
