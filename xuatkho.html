@@ -1,14 +1,4 @@
-.company-header {
-                margin-bottom: 15px;
-            }
-
-            .company-name {
-                font-size: 16px;
-            }
-
-            .company-details {
-                font-size: 12px;
-            }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 
 <head>
@@ -342,6 +332,34 @@
                 left: 15mm;
                 right: 15mm;
             }
+
+            /* Ẩn các hàng đã được ẩn bằng JavaScript */
+            .product-table tr[style*="display: none"] {
+                display: none !important;
+            }
+            
+            /* Backup: Ẩn hàng trống nếu JavaScript không chạy */
+            .product-table tr:has(td:nth-child(2):empty):has(td:nth-child(3):empty) {
+                display: none !important;
+            }
+        }
+
+        /* Style cho hàng bị ẩn trong chế độ xem thường */
+        .product-table tr[style*="display: none"] {
+            background-color: #f8f9fa;
+            opacity: 0.5;
+        }
+
+        .company-header {
+            margin-bottom: 15px;
+        }
+
+        .company-name {
+            font-size: 16px;
+        }
+
+        .company-details {
+            font-size: 12px;
         }
     </style>
 </head>
@@ -469,72 +487,112 @@
             document.getElementById('pageNumber').textContent = 'Trang 1/1';
         }
 
-        // Function to remove empty rows from table
-        function removeEmptyRows() {
+        // Function để ẩn các hàng trống
+        function hideEmptyRows() {
             const tbody = document.getElementById('productTableBody');
             const rows = tbody.querySelectorAll('tr');
             
-            rows.forEach(row => {
-                // Check if row has meaningful data
+            rows.forEach((row, index) => {
+                // Bỏ qua hàng tổng cộng
+                if (row.classList.contains('total-row')) {
+                    return;
+                }
+                
                 const cells = row.querySelectorAll('td');
                 let hasData = false;
                 
-                // Skip first cell (STT) and check others
+                // Kiểm tra từ ô thứ 2 (bỏ qua STT)
                 for (let i = 1; i < cells.length; i++) {
                     const cellText = cells[i].textContent.trim();
-                    if (cellText && cellText !== '' && cellText !== '-') {
+                    if (cellText && 
+                        cellText !== '' && 
+                        cellText !== '-' && 
+                        cellText !== 'undefined' && 
+                        cellText !== 'null' &&
+                        cellText !== '0' &&
+                        cellText.toLowerCase() !== 'n/a') {
                         hasData = true;
                         break;
                     }
                 }
                 
-                // Remove row if it has no meaningful data
+                // Ẩn hàng nếu không có dữ liệu
                 if (!hasData) {
-                    row.remove();
+                    row.style.display = 'none';
+                } else {
+                    row.style.display = '';
                 }
             });
+            
+            // Đánh số lại các hàng hiển thị
+            renumberVisibleRows();
+        }
 
-            // Re-number the remaining rows
-            const remainingRows = tbody.querySelectorAll('tr:not(.total-row)');
-            remainingRows.forEach((row, index) => {
+        // Hàm đánh số lại các hàng hiển thị
+        function renumberVisibleRows() {
+            const tbody = document.getElementById('productTableBody');
+            const visibleRows = tbody.querySelectorAll('tr:not(.total-row):not([style*="display: none"])');
+            
+            visibleRows.forEach((row, index) => {
                 const sttCell = row.querySelector('td:first-child');
-                if (sttCell && !row.classList.contains('total-row')) {
+                if (sttCell) {
                     sttCell.textContent = index + 1;
                 }
             });
         }
 
-        // Modified print function
-        function printDocument() {
-            // Remove empty rows before printing
-            removeEmptyRows();
+        // Hàm hiển thị lại tất cả hàng (để chỉnh sửa)
+        function showAllRows() {
+            const tbody = document.getElementById('productTableBody');
+            const rows = tbody.querySelectorAll('tr');
             
-            // Update footer information
+            rows.forEach(row => {
+                row.style.display = '';
+            });
+            
+            // Đánh số lại tất cả hàng
+            const allRows = tbody.querySelectorAll('tr:not(.total-row)');
+            allRows.forEach((row, index) => {
+                const sttCell = row.querySelector('td:first-child');
+                if (sttCell) {
+                    sttCell.textContent = index + 1;
+                }
+            });
+        }
+
+        // Cập nhật hàm printDocument để sử dụng hideEmptyRows
+        function printDocument() {
+            // Ẩn các hàng trống
+            hideEmptyRows();
+            
+            // Cập nhật thông tin footer
             updateFooter();
             
-            // Hide print controls
+            // Ẩn nút điều khiển
             const printControls = document.querySelector('.print-controls');
             if (printControls) {
                 printControls.style.display = 'none';
             }
             
-            // Print the document
+            // In tài liệu
             window.print();
             
-            // Show print controls again after printing
+            // Hiển thị lại nút điều khiển và khôi phục hiển thị
             setTimeout(() => {
                 if (printControls) {
                     printControls.style.display = 'flex';
                 }
+                // Hiển thị lại tất cả hàng để người dùng có thể chỉnh sửa nếu cần
+                showAllRows();
             }, 1000);
         }
 
-        // Initialize on page load
+        // Khởi tạo khi trang load
         document.addEventListener('DOMContentLoaded', function() {
             updateFooter();
             
-            // If you have existing data loading logic, make sure to call removeEmptyRows after loading
-            // removeEmptyRows();
+            // Có thể gọi hideEmptyRows() ngay từ đầu nếu muốn
+            // hideEmptyRows();
         });
     </script>
     <script src="https://tambv25.github.io/NhapKho/xuatkho.js"></script>
