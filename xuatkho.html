@@ -28,7 +28,7 @@
             background: white;
             min-height: 100vh;
             position: relative;
-            padding-bottom: 100px; /* Space for footer */
+            padding-bottom: 20px;
         }
 
         /* Print Controls */
@@ -67,6 +67,37 @@
         .print-btn:disabled {
             background: #bdc3c7;
             cursor: not-allowed;
+        }
+
+        /* Header company info */
+        .header-company-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .company-info-left {
+            text-align: left;
+        }
+
+        .company-info-right {
+            text-align: right;
+        }
+
+        .company-name-header {
+            font-weight: bold;
+            margin-bottom: 3px;
+            font-size: 14px;
+            color: #000;
+        }
+
+        .page-number-header {
+            margin-bottom: 3px;
         }
 
         /* Title */
@@ -173,17 +204,17 @@
             padding-left: 8px !important;
         }
 
-        /* Column widths */
+        /* Column widths - Tối ưu cho A4 */
         .stt-col {
-            width: 6%;
+            width: 5%;
         }
 
         .ma-hang-col {
-            width: 15%;
+            width: 12%;
         }
 
         .ten-hang-col {
-            width: 32%;
+            width: 38%;
         }
 
         .dvt-col {
@@ -191,7 +222,7 @@
         }
 
         .so-luong-col {
-            width: 12%;
+            width: 10%;
         }
 
         .so-kien-col {
@@ -200,6 +231,19 @@
 
         .ghi-chu-col {
             width: 17%;
+        }
+
+        /* Căn trái cho Mã hàng và Đvt */
+        .ma-hang-col,
+        .dvt-col {
+            text-align: left !important;
+            padding-left: 8px !important;
+        }
+
+        .product-table td.ma-hang-col,
+        .product-table td.dvt-col {
+            text-align: left !important;
+            padding-left: 8px !important;
         }
 
         /* Total row */
@@ -215,8 +259,8 @@
         .signature-section {
             display: flex;
             justify-content: space-between;
-            margin-top: 40px;
-            margin-bottom: 60px;
+            margin-top: 20px;
+            margin-bottom: 25px;
         }
 
         .signature-box {
@@ -235,36 +279,9 @@
             font-style: italic;
         }
 
-        /* Footer */
+        /* Footer - Chỉ hiển thị khi in */
         .footer {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            border-top: 1px solid #ddd;
-            padding-top: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .company-info {
-            text-align: left;
-        }
-
-        .company-name {
-            font-weight: bold;
-            margin-bottom: 3px;
-        }
-
-        .print-info {
-            text-align: right;
-        }
-
-        .page-number {
-            margin-bottom: 3px;
+            display: none;
         }
 
         /* Loading & Error */
@@ -298,7 +315,7 @@
         @media print {
             @page {
                 size: A4;
-                margin: 15mm;
+                margin: 10mm;
             }
 
             .print-controls {
@@ -312,25 +329,40 @@
             body {
                 padding: 0;
                 margin: 0;
-                font-size: 13px;
+                font-size: 12px;
             }
 
             .container {
                 max-width: none;
                 width: 100%;
                 min-height: auto;
-                padding-bottom: 80px;
+                padding-bottom: 20px;
             }
 
             .title {
-                font-size: 22px;
+                font-size: 20px;
+                margin-bottom: 8px;
+            }
+
+            .date-info {
+                margin-bottom: 15px;
+            }
+
+            .header-section {
+                margin-bottom: 15px;
+            }
+
+            .signature-section {
+                margin-top: 15px;
+                margin-bottom: 20px;
             }
 
             .footer {
                 position: fixed;
-                bottom: 10mm;
-                left: 15mm;
-                right: 15mm;
+                bottom: 5mm;
+                left: 10mm;
+                right: 10mm;
+                padding-top: 8px;
             }
 
             /* Ẩn các hàng đã được ẩn bằng JavaScript */
@@ -348,18 +380,6 @@
         .product-table tr[style*="display: none"] {
             background-color: #f8f9fa;
             opacity: 0.5;
-        }
-
-        .company-header {
-            margin-bottom: 15px;
-        }
-
-        .company-name {
-            font-size: 16px;
-        }
-
-        .company-details {
-            font-size: 12px;
         }
     </style>
 </head>
@@ -380,6 +400,19 @@
     </div>
 
     <div class="container">
+        <!-- Company Info Header -->
+        <div class="header-company-info">
+            <div class="company-info-left">
+                <div class="company-name-header" id="companyNameHeader">CÔNG TY TNHH ABC</div>
+                <div id="companyAddressHeader">123 Đường ABC, Quận XYZ, TP.HCM</div>
+                <div id="companyPhoneHeader">Tel: (028) 1234 5678</div>
+            </div>
+            <div class="company-info-right">
+                <div class="page-number-header" id="pageNumberHeader">Trang 1/1</div>
+                <div id="printDateTimeHeader">In lúc: --/--/---- --:--</div>
+            </div>
+        </div>
+
         <!-- Title -->
         <div class="title">PHIẾU XUẤT KHO</div>
         <div class="date-info">Ngày Tháng: <span id="ngayXuat"></span></div>
@@ -407,9 +440,9 @@
             <thead>
                 <tr>
                     <th class="stt-col">Stt</th>
-                    <th class="ma-hang-col">Mã Hàng</th>
+                    <th class="ma-hang-col" style="text-align: left; padding-left: 8px;">Mã Hàng</th>
                     <th class="ten-hang-col">Tên Hàng</th>
-                    <th class="dvt-col">Đvt</th>
+                    <th class="dvt-col" style="text-align: left; padding-left: 8px;">Đvt</th>
                     <th class="so-luong-col">Số lượng</th>
                     <th class="so-kien-col">Số Kiện</th>
                     <th class="ghi-chu-col">Ghi Chú</th>
@@ -475,125 +508,184 @@
             return `${day}/${month}/${year} ${hours}:${minutes}`;
         }
 
-        // Function to update footer information
-        function updateFooter() {
-            // Update print date time
-            document.getElementById('printDateTime').textContent = `In lúc: ${getCurrentDateTime()}`;
-            
-            // You can customize company information here
-            document.getElementById('companyName').textContent = 'CÔNG TY TNHH ABC';
-            document.getElementById('companyAddress').textContent = '123 Đường ABC, Quận XYZ, TP.HCM';
-            document.getElementById('companyPhone').textContent = 'Tel: (028) 1234 5678';
-            document.getElementById('pageNumber').textContent = 'Trang 1/1';
+        // Function to update header information
+        function updateHeader() {
+            try {
+                // Update print date time in header
+                const printDateTimeElement = document.getElementById('printDateTimeHeader');
+                if (printDateTimeElement) {
+                    printDateTimeElement.textContent = `In lúc: ${getCurrentDateTime()}`;
+                }
+                
+                // Update company information
+                const companyNameElement = document.getElementById('companyNameHeader');
+                if (companyNameElement) {
+                    companyNameElement.textContent = 'CÔNG TY TNHH ABC';
+                }
+                
+                const companyAddressElement = document.getElementById('companyAddressHeader');
+                if (companyAddressElement) {
+                    companyAddressElement.textContent = '123 Đường ABC, Quận XYZ, TP.HCM';
+                }
+                
+                const companyPhoneElement = document.getElementById('companyPhoneHeader');
+                if (companyPhoneElement) {
+                    companyPhoneElement.textContent = 'Tel: (028) 1234 5678';
+                }
+                
+                const pageNumberElement = document.getElementById('pageNumberHeader');
+                if (pageNumberElement) {
+                    pageNumberElement.textContent = 'Trang 1/1';
+                }
+            } catch (error) {
+                console.log('Error updating header:', error);
+            }
         }
 
         // Function để ẩn các hàng trống
         function hideEmptyRows() {
-            const tbody = document.getElementById('productTableBody');
-            const rows = tbody.querySelectorAll('tr');
-            
-            rows.forEach((row, index) => {
-                // Bỏ qua hàng tổng cộng
-                if (row.classList.contains('total-row')) {
-                    return;
-                }
+            try {
+                const tbody = document.getElementById('productTableBody');
+                if (!tbody) return;
                 
-                const cells = row.querySelectorAll('td');
-                let hasData = false;
+                const rows = tbody.querySelectorAll('tr');
                 
-                // Kiểm tra từ ô thứ 2 (bỏ qua STT)
-                for (let i = 1; i < cells.length; i++) {
-                    const cellText = cells[i].textContent.trim();
-                    if (cellText && 
-                        cellText !== '' && 
-                        cellText !== '-' && 
-                        cellText !== 'undefined' && 
-                        cellText !== 'null' &&
-                        cellText !== '0' &&
-                        cellText.toLowerCase() !== 'n/a') {
-                        hasData = true;
-                        break;
+                rows.forEach((row, index) => {
+                    // Bỏ qua hàng tổng cộng
+                    if (row.classList.contains('total-row')) {
+                        return;
                     }
-                }
+                    
+                    const cells = row.querySelectorAll('td');
+                    let hasData = false;
+                    
+                    // Kiểm tra từ ô thứ 2 (bỏ qua STT)
+                    for (let i = 1; i < cells.length; i++) {
+                        const cellText = cells[i].textContent.trim();
+                        if (cellText && 
+                            cellText !== '' && 
+                            cellText !== '-' && 
+                            cellText !== 'undefined' && 
+                            cellText !== 'null' &&
+                            cellText !== '0' &&
+                            cellText.toLowerCase() !== 'n/a') {
+                            hasData = true;
+                            break;
+                        }
+                    }
+                    
+                    // Ẩn hàng nếu không có dữ liệu
+                    if (!hasData) {
+                        row.style.display = 'none';
+                    } else {
+                        row.style.display = '';
+                    }
+                });
                 
-                // Ẩn hàng nếu không có dữ liệu
-                if (!hasData) {
-                    row.style.display = 'none';
-                } else {
-                    row.style.display = '';
-                }
-            });
-            
-            // Đánh số lại các hàng hiển thị
-            renumberVisibleRows();
+                // Đánh số lại các hàng hiển thị
+                renumberVisibleRows();
+            } catch (error) {
+                console.log('Error hiding empty rows:', error);
+            }
         }
 
         // Hàm đánh số lại các hàng hiển thị
         function renumberVisibleRows() {
-            const tbody = document.getElementById('productTableBody');
-            const visibleRows = tbody.querySelectorAll('tr:not(.total-row):not([style*="display: none"])');
-            
-            visibleRows.forEach((row, index) => {
-                const sttCell = row.querySelector('td:first-child');
-                if (sttCell) {
-                    sttCell.textContent = index + 1;
-                }
-            });
+            try {
+                const tbody = document.getElementById('productTableBody');
+                if (!tbody) return;
+                
+                const visibleRows = tbody.querySelectorAll('tr:not(.total-row):not([style*="display: none"])');
+                
+                visibleRows.forEach((row, index) => {
+                    const sttCell = row.querySelector('td:first-child');
+                    if (sttCell) {
+                        sttCell.textContent = index + 1;
+                    }
+                });
+            } catch (error) {
+                console.log('Error renumbering rows:', error);
+            }
         }
 
         // Hàm hiển thị lại tất cả hàng (để chỉnh sửa)
         function showAllRows() {
-            const tbody = document.getElementById('productTableBody');
-            const rows = tbody.querySelectorAll('tr');
-            
-            rows.forEach(row => {
-                row.style.display = '';
-            });
-            
-            // Đánh số lại tất cả hàng
-            const allRows = tbody.querySelectorAll('tr:not(.total-row)');
-            allRows.forEach((row, index) => {
-                const sttCell = row.querySelector('td:first-child');
-                if (sttCell) {
-                    sttCell.textContent = index + 1;
-                }
-            });
+            try {
+                const tbody = document.getElementById('productTableBody');
+                if (!tbody) return;
+                
+                const rows = tbody.querySelectorAll('tr');
+                
+                rows.forEach(row => {
+                    row.style.display = '';
+                });
+                
+                // Đánh số lại tất cả hàng
+                const allRows = tbody.querySelectorAll('tr:not(.total-row)');
+                allRows.forEach((row, index) => {
+                    const sttCell = row.querySelector('td:first-child');
+                    if (sttCell) {
+                        sttCell.textContent = index + 1;
+                    }
+                });
+            } catch (error) {
+                console.log('Error showing all rows:', error);
+            }
         }
 
-        // Cập nhật hàm printDocument để sử dụng hideEmptyRows
+        // Function to update footer information (giữ lại cho tương thích)
+        function updateFooter() {
+            // Update header instead
+            updateHeader();
+        }
+
+        // Cập nhật hàm printDocument
         function printDocument() {
-            // Ẩn các hàng trống
-            hideEmptyRows();
-            
-            // Cập nhật thông tin footer
-            updateFooter();
-            
-            // Ẩn nút điều khiển
-            const printControls = document.querySelector('.print-controls');
-            if (printControls) {
-                printControls.style.display = 'none';
-            }
-            
-            // In tài liệu
-            window.print();
-            
-            // Hiển thị lại nút điều khiển và khôi phục hiển thị
-            setTimeout(() => {
+            try {
+                // Ẩn các hàng trống
+                hideEmptyRows();
+                
+                // Cập nhật thông tin header
+                updateHeader();
+                
+                // Ẩn nút điều khiển
+                const printControls = document.querySelector('.print-controls');
                 if (printControls) {
-                    printControls.style.display = 'flex';
+                    printControls.style.display = 'none';
                 }
-                // Hiển thị lại tất cả hàng để người dùng có thể chỉnh sửa nếu cần
-                showAllRows();
-            }, 1000);
+                
+                // In tài liệu
+                window.print();
+                
+                // Hiển thị lại nút điều khiển và khôi phục hiển thị
+                setTimeout(() => {
+                    if (printControls) {
+                        printControls.style.display = 'flex';
+                    }
+                    // Hiển thị lại tất cả hàng để người dùng có thể chỉnh sửa nếu cần
+                    showAllRows();
+                }, 1000);
+            } catch (error) {
+                console.log('Error in printDocument:', error);
+                alert('Có lỗi khi in tài liệu: ' + error.message);
+            }
         }
 
         // Khởi tạo khi trang load
         document.addEventListener('DOMContentLoaded', function() {
-            updateFooter();
-            
-            // Có thể gọi hideEmptyRows() ngay từ đầu nếu muốn
-            // hideEmptyRows();
+            try {
+                updateHeader();
+                console.log('Page initialized successfully');
+            } catch (error) {
+                console.log('Error during initialization:', error);
+            }
         });
+
+        // Đảm bảo functions có sẵn globally
+        window.printDocument = printDocument;
+        window.updateHeader = updateHeader;
+        window.hideEmptyRows = hideEmptyRows;
+        window.showAllRows = showAllRows;
     </script>
     <script src="https://tambv25.github.io/NhapKho/xuatkho.js"></script>
 </body>
