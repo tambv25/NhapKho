@@ -127,8 +127,6 @@
             width: 30% !important;
         }
 
-
-
         .print-label tr:nth-child(1) {
             height: 13mm !important;
         }
@@ -150,11 +148,11 @@
         }
 
         .print-label tr:nth-child(6) {
-            height: 9mm;
+            height: 7mm;  /* Giảm từ 9mm xuống 7mm */
         }
 
         .print-label tr:nth-child(7) {
-            height: 27mm;
+            height: 38mm;  /* Tăng từ 27mm lên 38mm cho dòng số lượng */
         }
 
         .qr-cell {
@@ -210,6 +208,13 @@
 
         .selected-row {
             background-color: #e5edff !important;
+        }
+
+        /* Style mới cho số lượng lớn */
+        .quantity-large {
+            font-family: Arial Black, sans-serif !important;
+            font-weight: 900 !important;
+            line-height: 0.9 !important;
         }
     </style>
 </head>
@@ -290,7 +295,6 @@
     </div>
 
     <script>
-
         document.addEventListener('contextmenu', function (e) {
             e.preventDefault();
         }, false);
@@ -309,7 +313,6 @@
                 return false;
             }
         };
-
 
         const appId = 'cb939a9d-a524-4bdf-9035-71ed0ab962d4';
         const accessKey = 'V2-fJCAe-tBC2O-bx4Ky-7ECei-IL1aw-E0j4S-HW352-yq1kE';
@@ -344,6 +347,22 @@
             });
         }
 
+        // Hàm format số lượng mới
+        function formatQuantity(quantity) {
+            const num = parseFloat(quantity) || 0;
+            return Number.isInteger(num) ? num.toString() : num.toFixed(2);
+        }
+
+        // Hàm tự động điều chỉnh kích thước font theo độ dài số
+        function getQuantityFontSize(quantity) {
+            const length = quantity.toString().length;
+            if (length <= 3) return 110;  // 1-3 chữ số
+            if (length === 4) return 95;   // 4 chữ số  
+            if (length === 5) return 80;   // 5 chữ số
+            if (length === 6) return 70;   // 6 chữ số
+            return 60;  // >6 chữ số
+        }
+
         function updateTableHeader() {
             const headerHTML = `
         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
@@ -367,7 +386,6 @@
             document.querySelector('#dataTable thead').outerHTML = headerHTML;
         }
 
-        // Cập nhật hàm tạo group row
         function createGroupRow(groupData) {
             const totalAmount = groupData.items.reduce((sum, item) => {
                 return sum + (parseFloat(item.THANH_TIEN) || 0);
@@ -415,13 +433,9 @@
     `;
         }
 
-
-
         async function prepareGroupedItems(items) {
-            // Lấy số lượng/pallet từ danh mục
             const palletSizes = await fetchPalletSizes();
 
-            // Gộp theo mã hàng
             const groupedByCode = items.reduce((acc, item) => {
                 if (!acc[item.MA_HANG]) {
                     acc[item.MA_HANG] = {
@@ -439,7 +453,6 @@
                 return acc;
             }, {});
 
-            // Chuyển đổi thành mảng và tính tổng
             const groupedArray = Object.values(groupedByCode);
             const totals = {
                 SO_LUONG: groupedArray.reduce((sum, item) => sum + parseFloat(item.SO_LUONG), 0)
@@ -481,7 +494,6 @@
             }
         }
 
-        // Thay thế hàm printGroup hiện tại bằng hàm mới này
         async function printGroup(soPhieu) {
             try {
                 showLoading();
@@ -508,7 +520,6 @@
                 const formattedDate = `Ngày ${date.getDate()} Tháng ${date.getMonth() + 1} Năm ${date.getFullYear()}`;
                 const soPO = group.items[0]['Số PO#'] || '';
 
-                // Style cho trang in nằm ngang
                 const printStyles = `
             <style>
                 @page {
@@ -609,9 +620,9 @@
                                         <td>${item.TEN_HANG}</td>
                                         <td style="text-align: center;">${item.DVT}</td>
                                         <td style="text-align: right;">
-                                            ${isFirstOccurrence ? productTotals.get(item.MA_HANG).totalQuantity : ''}
+                                            ${isFirstOccurrence ? formatQuantity(productTotals.get(item.MA_HANG).totalQuantity) : ''}
                                         </td>
-                                        <td style="text-align: right;">${item.SO_LUONG || ''}</td>
+                                        <td style="text-align: right;">${formatQuantity(item.SO_LUONG) || ''}</td>
                                         <td>${item.VI_TRI || ''}</td>
                                         <td style="text-align: center;">${formatDate(item.NSX)}</td>
                                         <td style="text-align: center;">${formatDate(item.HSD)}</td>
@@ -622,10 +633,10 @@
                             <tr>
                                 <td colspan="4" style="text-align: center; font-weight: bold;">Tổng Cộng:</td>
                                 <td style="text-align: right; font-weight: bold;">
-                                    ${Array.from(productTotals.values()).reduce((sum, { totalQuantity }) => sum + totalQuantity, 0)}
+                                    ${formatQuantity(Array.from(productTotals.values()).reduce((sum, { totalQuantity }) => sum + totalQuantity, 0))}
                                 </td>
                                 <td style="text-align: right; font-weight: bold;">
-                                    ${group.items.reduce((sum, item) => sum + parseFloat(item.SO_LUONG || 0), 0)}
+                                    ${formatQuantity(group.items.reduce((sum, item) => sum + parseFloat(item.SO_LUONG || 0), 0))}
                                 </td>
                                 <td colspan="5"></td>
                             </tr>
@@ -650,11 +661,8 @@
             </div>
         `;
 
-                // Print logic
                 const originalContent = document.body.innerHTML;
                 document.body.innerHTML = printContent;
-
-                // Thêm tên phiếu vào title trước khi in
                 document.title = `${soPhieu}`;
 
                 window.print();
@@ -670,7 +678,6 @@
             }
         }
 
-        // Cập nhật hàm createDetailRow trong file JavaScript
         function createDetailRow(item) {
             return `
         <tr class="detail-row bg-gray-50 animate-fade-in text-sm" data-phieu="${item.SO_PHIEU}" style="display: none;">
@@ -749,7 +756,6 @@
                 });
         }
 
-        // Function to fetch product names from DanhMuc_HH
         async function fetchProductNames() {
             const apiUrl = `https://${region}.appsheet.com/api/v2/apps/${appId}/tables/DanhMuc_HH/Action`;
             try {
@@ -784,9 +790,11 @@
             }
         }
 
-        // Print Functions
+        // HÀM MỚI ĐƯỢC CẬP NHẬT VỚI SỐ LƯỢNG LỚN HƠN
         function createPrintLabel(item, index, productNames) {
             const printName = productNames.get(item.MA_HANG) || `${item.MA_HANG}_${item.TEN_HANG}`;
+            const quantity = formatQuantity(item.SO_LUONG);
+            const fontSize = getQuantityFontSize(quantity);
 
             return `
         <div class="print-label ${index === 0 ? 'first-label' : ''}">
@@ -829,11 +837,30 @@
                     <td colspan="3" style="text-align: center; font-size: 20px;">Số Lượng</td>
                     <td style="text-align: center; font-size: 25px;">Vị Trí</td>
                 </tr>
-                <tr>
-                    <td colspan="3" style="font-size: 80px; text-align: center;">
-                        ${item.SO_LUONG || ''}
+                <tr style="height: 38mm !important;">
+                    <td colspan="3" style="text-align: center; padding: 0; vertical-align: middle;">
+                        <div style="
+                            font-size: ${fontSize}px;
+                            font-family: Arial Black, sans-serif;
+                            font-weight: 900;
+                            line-height: 0.9;
+                            letter-spacing: -3px;
+                            color: #000;
+                            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+                        ">
+                            ${quantity}
+                        </div>
                     </td>
-                    <td style="font-size: 80px; text-align: center;">${item.VI_TRI || ''}</td>
+                    <td style="
+                        font-size: 75px;
+                        text-align: center;
+                        font-weight: 900;
+                        vertical-align: middle;
+                        font-family: Arial Black, sans-serif;
+                        letter-spacing: -2px;
+                    ">
+                        ${item.VI_TRI || ''}
+                    </td>
                 </tr>
             </table>
         </div>
@@ -861,14 +888,14 @@
                 if (barcodeElement) {
                     const barcodeValue = item.MA_HANG || "NO_CODE";
                     JsBarcode(barcodeElement, barcodeValue, {
-                        width: 2, // Tăng độ rộng của các vạch
-                        height: 30, // Tăng chiều cao
-                        fontSize: 13, // Tăng cỡ chữ
-                        margin: 5, // Thêm margin để dễ quét hơn
-                        format: "CODE128", // Chọn format phổ biến
-                        displayValue: true, // Hiển thị giá trị để dễ kiểm tra
-                        background: "#ffffff", // Nền trắng để tương phản tốt
-                        lineColor: "#000000", // Màu đen đậm cho các vạch
+                        width: 2,
+                        height: 30,
+                        fontSize: 13,
+                        margin: 5,
+                        format: "CODE128",
+                        displayValue: true,
+                        background: "#ffffff",
+                        lineColor: "#000000",
                         textAlign: "center",
                         textPosition: "bottom",
                         textMargin: 6
@@ -896,11 +923,6 @@
                         height: 120,
                         margin: 0
                     });
-
-                    // const qrResultElement = document.getElementById(`qr-result-${index}`);
-                    // if (qrResultElement) {
-                    //     qrResultElement.textContent = qrData;
-                    // }
                 }
             });
 
@@ -936,7 +958,6 @@
             }
         }
 
-        // Event Handlers
         function toggleRowSelection(button) {
             const row = button.closest('.detail-row');
             row.classList.toggle('selected-row');
@@ -980,7 +1001,6 @@
         function exportToExcel() {
             showLoading();
 
-            // Định nghĩa các cột cần xuất
             const columns = [
                 "TRANG_THAI", "DON_GIA", "THANH_TIEN", "SO_PHIEU", "NGAY_THANG",
                 "MA_HANG", "TEN_HANG", "DVT", "SO_LUONG", "NSX", "HSD",
@@ -988,22 +1008,17 @@
                 "Số HĐ", "Số PO#"
             ];
 
-            // Tạo header cho file Excel
             const header = columns;
 
-            // Tạo dữ liệu từ originalData với chuyển đổi kiểu dữ liệu phù hợp
             const data = originalData.map(item => {
                 return columns.map(col => {
                     let value = item[col];
 
-                    // Xử lý định dạng ngày tháng
                     if (col === "NGAY_THANG" || col === "NSX" || col === "HSD") {
                         value = value ? formatDate(value) : '';
                     }
-                    // Xử lý các trường số
                     else if (col === "DON_GIA" || col === "THANH_TIEN" || col === "SO_LUONG") {
                         value = value ? parseFloat(value) : 0;
-                        // Đảm bảo là số hợp lệ, nếu không thì mặc định là 0
                         value = isNaN(value) ? 0 : value;
                     }
 
@@ -1011,28 +1026,22 @@
                 });
             });
 
-            // Thêm header vào đầu dữ liệu
             data.unshift(header);
 
-            // Tạo workbook và worksheet
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Nhập Kho");
 
-            // Tạo tên file với timestamp
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const fileName = `NhapKho_${timestamp}.xlsx`;
 
-            // Xuất file
             XLSX.writeFile(wb, fileName);
 
             hideLoading();
             showNotification('Xuất Excel thành công!', 'success');
         }
 
-        // Function to reset all selected items
         function resetSelections() {
-            // Reset all selected detail rows
             document.querySelectorAll('.detail-row.selected-row').forEach(row => {
                 row.classList.remove('selected-row');
                 const selectButton = row.querySelector('button[data-item]');
@@ -1048,18 +1057,15 @@
                 row.removeAttribute('data-selected-item');
             });
 
-            // Reset all group checkboxes
             document.querySelectorAll('.group-row .group-checkbox').forEach(checkbox => {
                 checkbox.checked = false;
             });
 
-            // Reset main checkbox in header
             const headerCheckbox = document.querySelector('thead input[type="checkbox"]');
             if (headerCheckbox) {
                 headerCheckbox.checked = false;
             }
 
-            // Reset group row styling
             document.querySelectorAll('.group-row.group-selected').forEach(row => {
                 row.classList.remove('group-selected');
             });
@@ -1086,12 +1092,9 @@
             }
 
             await performPrint(selectedItems);
-
-            // Reset selections after printing
             resetSelections();
         }
 
-        // Search and Filter Functions
         function initializeSearch() {
             const searchInput = document.getElementById('searchInput');
             if (searchInput) {
@@ -1103,7 +1106,7 @@
         }
 
         function filterTable(searchTerm) {
-            currentPage = 1; // Reset về trang 1 khi tìm kiếm
+            currentPage = 1;
             const filteredData = originalData.filter(item => {
                 const text = Object.values(item).join(' ').toLowerCase();
                 return text.includes(searchTerm);
@@ -1111,7 +1114,6 @@
             renderTable(filteredData);
         }
 
-        // Data Loading and Initialization
         function loadData() {
             showLoading();
             const apiUrl = `https://${region}.appsheet.com/api/v2/apps/${appId}/tables/${tableName}/Action`;
@@ -1135,7 +1137,7 @@
                     if (Array.isArray(data)) {
                         data.reverse();
                         originalData = data;
-                        updateTableHeader(); // Thêm dòng này
+                        updateTableHeader();
                         renderTable(data);
                         hideLoading();
                     }
@@ -1187,17 +1189,14 @@
             return container;
         }
 
-        // Thêm biến để quản lý phân trang
         let currentPage = 1;
         const itemsPerPage = 10;
         let totalPages = 0;
 
-        // Hàm tính toán số trang
         function calculateTotalPages(data) {
             return Math.ceil(data.size / itemsPerPage);
         }
 
-        // Hàm lấy dữ liệu cho trang hiện tại
         function getCurrentPageData(groupedData) {
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
@@ -1215,7 +1214,6 @@
             return currentPageData;
         }
 
-        // Hàm tạo các nút phân trang
         function createPaginationControls(totalItems) {
             const startItem = (currentPage - 1) * itemsPerPage + 1;
             const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -1264,7 +1262,6 @@
     `;
         }
 
-        // Hàm tạo các nút số trang
         function generatePageButtons() {
             let buttons = '';
             const maxVisiblePages = 5;
@@ -1288,12 +1285,10 @@
             return buttons;
         }
 
-        // Hàm chuyển trang
         function changePage(page) {
             if (page < 1 || page > totalPages || page === currentPage) return;
 
             currentPage = page;
-            // Lọc lại dữ liệu nếu đang tìm kiếm
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             if (searchTerm) {
                 const filteredData = originalData.filter(item => {
@@ -1306,22 +1301,17 @@
             }
         }
 
-        // Cập nhật hàm renderTable
         function renderTable(data) {
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
 
-            // Group data
             groupedData = groupData(data);
 
-            // Tính toán số trang
             const totalItems = groupedData.size;
             totalPages = Math.ceil(totalItems / itemsPerPage);
 
-            // Lấy dữ liệu cho trang hiện tại
             const currentPageData = getCurrentPageData(groupedData);
 
-            // Render rows
             currentPageData.forEach(group => {
                 let html = createGroupRow(group);
                 group.items.forEach(item => {
@@ -1330,7 +1320,6 @@
                 tableBody.innerHTML += html;
             });
 
-            // Render single pagination control
             const paginationHTML = createPaginationControls(totalItems);
             const existingPagination = document.querySelector('.pagination-controls');
             if (existingPagination) {
@@ -1360,7 +1349,6 @@
         }
 
         function initializeEventListeners() {
-            // Xử lý sự kiện click vào group row
             document.querySelectorAll('.group-row').forEach(row => {
                 row.addEventListener('click', function (e) {
                     if (!e.target.classList.contains('group-checkbox')) {
@@ -1383,7 +1371,6 @@
                 });
             });
 
-            // Xử lý hover effect cho các nút
             document.querySelectorAll('button').forEach(button => {
                 button.addEventListener('mouseenter', function () {
                     this.classList.add('transform', 'scale-105');
@@ -1418,24 +1405,22 @@
             });
         }
 
-        // Khởi tạo ứng dụng
-        document.addEventListener('DOMContentLoaded', () => {
-            loadCompanyName(); // Thêm dòng này
+        // Thêm hàm stub cho fetchPalletSizes để tránh lỗi
+        async function fetchPalletSizes() {
+            return new Map();
+        }
 
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCompanyName();
             loadData();
             initializeSearch();
 
-
-
-            // Xử lý sự kiện shortcut keys
             document.addEventListener('keydown', (e) => {
-                // Ctrl/Cmd + P để in
                 if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
                     e.preventDefault();
                     printAllSelected();
                 }
 
-                // Ctrl/Cmd + F để focus vào ô tìm kiếm
                 if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
                     e.preventDefault();
                     document.getElementById('searchInput')?.focus();
@@ -1443,7 +1428,6 @@
             });
         });
 
-        // Export utility functions for testing if needed
         if (typeof module !== 'undefined' && module.exports) {
             module.exports = {
                 formatCurrency,
